@@ -60,6 +60,7 @@ dependencies {
     implementation(libs.androidx.material3)
     implementation(libs.material)
     implementation(libs.androidx.material.icons.extended)
+    implementation(libs.androidx.navigation.compose)
 
     // Hilt
     implementation(libs.hilt.android)

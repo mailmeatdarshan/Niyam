@@ -1,14 +1,14 @@
 package com.example.niyam.ui.home
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -18,13 +18,24 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.niyam.ui.theme.SaffronPrimary
 import com.example.niyam.ui.theme.SaffronLight
+import kotlinx.coroutines.launch
 
 @Composable
 fun HomeScreen() {
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+
+    fun showNotImplementedMessage(feature: String) {
+        scope.launch {
+            snackbarHostState.showSnackbar("$feature coming soon!")
+        }
+    }
+
     Scaffold(
         topBar = {
-            HomeTopBar()
-        }
+            HomeTopBar(onProfileClick = { showNotImplementedMessage("Profile") })
+        },
+        snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { padding ->
         LazyColumn(
             modifier = Modifier
@@ -39,11 +50,11 @@ fun HomeScreen() {
             }
             
             item {
-                DailyQuoteCard()
+                DailyQuoteCard(onClick = { showNotImplementedMessage("Daily Quote") })
             }
 
             item {
-                QuickActionsGrid()
+                QuickActionsGrid(onActionClick = { showNotImplementedMessage(it) })
             }
 
             item {
@@ -59,7 +70,7 @@ fun HomeScreen() {
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeTopBar() {
+fun HomeTopBar(onProfileClick: () -> Unit) {
     CenterAlignedTopAppBar(
         title = {
             Text(
@@ -72,7 +83,7 @@ fun HomeTopBar() {
             )
         },
         actions = {
-            IconButton(onClick = { /* TODO: Profile/Settings */ }) {
+            IconButton(onClick = onProfileClick) {
                 Icon(
                     imageVector = Icons.Default.Person,
                     contentDescription = "Profile",
@@ -97,7 +108,7 @@ fun GreetingSection() {
             )
         )
         Text(
-            "Pawan", // Placeholder for user name
+            "Darshan",
             style = MaterialTheme.typography.headlineLarge.copy(
                 fontWeight = FontWeight.Bold,
                 color = SaffronPrimary
@@ -107,11 +118,12 @@ fun GreetingSection() {
 }
 
 @Composable
-fun DailyQuoteCard() {
+fun DailyQuoteCard(onClick: () -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = SaffronLight),
-        shape = RoundedCornerShape(24.dp)
+        shape = RoundedCornerShape(24.dp),
+        onClick = onClick
     ) {
         Column(
             modifier = Modifier.padding(24.dp)
@@ -141,7 +153,7 @@ fun DailyQuoteCard() {
 }
 
 @Composable
-fun QuickActionsGrid() {
+fun QuickActionsGrid(onActionClick: (String) -> Unit) {
     Column {
         Text(
             "Daily Path",
@@ -155,11 +167,13 @@ fun QuickActionsGrid() {
             QuickActionItem(
                 icon = Icons.Default.SelfImprovement,
                 label = "Dhyana",
+                onClick = { onActionClick("Dhyana") },
                 modifier = Modifier.weight(1f)
             )
             QuickActionItem(
                 icon = Icons.Default.MenuBook,
                 label = "Gita",
+                onClick = { onActionClick("Gita") },
                 modifier = Modifier.weight(1f)
             )
         }
@@ -171,11 +185,13 @@ fun QuickActionsGrid() {
             QuickActionItem(
                 icon = Icons.Default.MusicNote,
                 label = "Bhajan",
+                onClick = { onActionClick("Bhajan") },
                 modifier = Modifier.weight(1f)
             )
             QuickActionItem(
                 icon = Icons.Default.DoneAll,
                 label = "Tasks",
+                onClick = { onActionClick("Tasks") },
                 modifier = Modifier.weight(1f)
             )
         }
@@ -183,13 +199,18 @@ fun QuickActionsGrid() {
 }
 
 @Composable
-fun QuickActionItem(icon: ImageVector, label: String, modifier: Modifier = Modifier) {
+fun QuickActionItem(
+    icon: ImageVector,
+    label: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
     Surface(
         modifier = modifier,
         shape = RoundedCornerShape(20.dp),
         color = MaterialTheme.colorScheme.surface,
         tonalElevation = 2.dp,
-        onClick = { /* TODO */ }
+        onClick = onClick
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
@@ -213,6 +234,18 @@ fun QuickActionItem(icon: ImageVector, label: String, modifier: Modifier = Modif
 
 @Composable
 fun DailyProgressSection() {
+    // Local state for demonstration - will be moved to ViewModel/Database later
+    var items by remember {
+        mutableStateOf(
+            listOf(
+                "Sandhyavandanam" to true,
+                "Meditation (15 min)" to true,
+                "Bhagavad Gita Reading" to false,
+                "Surya Namaskar" to false
+            )
+        )
+    }
+
     Column {
         Text(
             "Today's Routine",
@@ -223,37 +256,49 @@ fun DailyProgressSection() {
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
             elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-            border = androidx.compose.foundation.BorderStroke(1.dp, SaffronLight)
+            border = BorderStroke(1.dp, SaffronLight)
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
-                RoutineItem("Sandhyavandanam", true)
-                RoutineItem("Meditation (15 min)", true)
-                RoutineItem("Bhagavad Gita Reading", false)
-                RoutineItem("Surya Namaskar", false)
+                items.forEachIndexed { index, (title, isDone) ->
+                    RoutineItem(
+                        title = title,
+                        isDone = isDone,
+                        onToggle = {
+                            val newList = items.toMutableList()
+                            newList[index] = title to !isDone
+                            items = newList
+                        }
+                    )
+                }
             }
         }
     }
 }
 
 @Composable
-fun RoutineItem(title: String, isDone: Boolean) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 8.dp),
-        verticalAlignment = Alignment.CenterVertically
+fun RoutineItem(title: String, isDone: Boolean, onToggle: () -> Unit) {
+    Surface(
+        onClick = onToggle,
+        color = Color.Transparent,
+        modifier = Modifier.fillMaxWidth()
     ) {
-        Checkbox(
-            checked = isDone,
-            onCheckedChange = null,
-            colors = CheckboxDefaults.colors(checkedColor = SaffronPrimary)
-        )
-        Spacer(modifier = Modifier.width(12.dp))
-        Text(
-            text = title,
-            style = MaterialTheme.typography.bodyLarge,
-            color = if (isDone) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f) else MaterialTheme.colorScheme.onSurface,
-            textDecoration = if (isDone) androidx.compose.ui.text.style.TextDecoration.LineThrough else null
-        )
+        Row(
+            modifier = Modifier
+                .padding(vertical = 8.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Checkbox(
+                checked = isDone,
+                onCheckedChange = { onToggle() },
+                colors = CheckboxDefaults.colors(checkedColor = SaffronPrimary)
+            )
+            Spacer(modifier = Modifier.width(12.dp))
+            Text(
+                text = title,
+                style = MaterialTheme.typography.bodyLarge,
+                color = if (isDone) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f) else MaterialTheme.colorScheme.onSurface,
+                textDecoration = if (isDone) androidx.compose.ui.text.style.TextDecoration.LineThrough else null
+            )
+        }
     }
 }
