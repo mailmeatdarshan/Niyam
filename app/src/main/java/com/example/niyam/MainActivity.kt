@@ -13,6 +13,7 @@ import com.example.niyam.ui.bhajan.BhajanScreen
 import com.example.niyam.ui.gita.GitaScreen
 import com.example.niyam.ui.gita.GitaViewModel
 import com.example.niyam.ui.home.HomeScreen
+import com.example.niyam.ui.home.RoutineViewModel
 import com.example.niyam.ui.meditation.MeditationScreen
 import com.example.niyam.ui.theme.NiyamTheme
 import dagger.hilt.android.AndroidEntryPoint
