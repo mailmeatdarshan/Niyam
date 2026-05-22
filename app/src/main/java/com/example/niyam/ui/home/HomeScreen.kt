@@ -16,14 +16,21 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.example.niyam.data.local.RoutineItem
 import com.example.niyam.ui.theme.SaffronPrimary
 import com.example.niyam.ui.theme.SaffronLight
 import kotlinx.coroutines.launch
 
 @Composable
-fun HomeScreen() {
+fun HomeScreen(
+    onNavigateToMeditation: () -> Unit,
+    onNavigateToGita: () -> Unit,
+    onNavigateToBhajan: () -> Unit,
+    routineViewModel: RoutineViewModel
+) {
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
+    val routineItems by routineViewModel.routineItems.collectAsState()
 
     fun showNotImplementedMessage(feature: String) {
         scope.launch {
@@ -54,11 +61,24 @@ fun HomeScreen() {
             }
 
             item {
-                QuickActionsGrid(onActionClick = { showNotImplementedMessage(it) })
+                QuickActionsGrid(
+                    onActionClick = { 
+                        when (it) {
+                            "Meditation" -> onNavigateToMeditation()
+                            "Gita" -> onNavigateToGita()
+                            "Bhajan" -> onNavigateToBhajan()
+                            else -> showNotImplementedMessage(it)
+                        }
+                    }
+                )
             }
 
             item {
-                DailyProgressSection()
+                DailyProgressSection(
+                    items = routineItems,
+                    onToggle = { routineViewModel.toggleTask(it) },
+                    onAddTask = { routineViewModel.addTask(it) }
+                )
             }
             
             item {
@@ -166,8 +186,8 @@ fun QuickActionsGrid(onActionClick: (String) -> Unit) {
         ) {
             QuickActionItem(
                 icon = Icons.Default.SelfImprovement,
-                label = "Dhyana",
-                onClick = { onActionClick("Dhyana") },
+                label = "Meditation",
+                onClick = { onActionClick("Meditation") },
                 modifier = Modifier.weight(1f)
             )
             QuickActionItem(
@@ -233,25 +253,30 @@ fun QuickActionItem(
 }
 
 @Composable
-fun DailyProgressSection() {
-    // Local state for demonstration - will be moved to ViewModel/Database later
-    var items by remember {
-        mutableStateOf(
-            listOf(
-                "Sandhyavandanam" to true,
-                "Meditation (15 min)" to true,
-                "Bhagavad Gita Reading" to false,
-                "Surya Namaskar" to false
-            )
-        )
-    }
+fun DailyProgressSection(
+    items: List<RoutineItem>,
+    onToggle: (RoutineItem) -> Unit,
+    onAddTask: (String) -> Unit
+) {
+    var showAddDialog by remember { mutableStateOf(false) }
 
     Column {
-        Text(
-            "Today's Routine",
-            style = MaterialTheme.typography.titleLarge,
-            modifier = Modifier.padding(bottom = 16.dp)
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                "Today's Routine",
+                style = MaterialTheme.typography.titleLarge
+            )
+            IconButton(onClick = { showAddDialog = true }) {
+                Icon(Icons.Default.Add, contentDescription = "Add Task", tint = SaffronPrimary)
+            }
+        }
+        
+        Spacer(modifier = Modifier.height(16.dp))
+
         Card(
             modifier = Modifier.fillMaxWidth(),
             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
@@ -259,24 +284,65 @@ fun DailyProgressSection() {
             border = BorderStroke(1.dp, SaffronLight)
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
-                items.forEachIndexed { index, (title, isDone) ->
-                    RoutineItem(
-                        title = title,
-                        isDone = isDone,
-                        onToggle = {
-                            val newList = items.toMutableList()
-                            newList[index] = title to !isDone
-                            items = newList
-                        }
+                if (items.isEmpty()) {
+                    Text(
+                        "No tasks added yet.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color.Gray,
+                        modifier = Modifier.padding(vertical = 8.dp)
                     )
+                } else {
+                    items.forEach { item ->
+                        RoutineItemRow(
+                            item = item,
+                            onToggle = { onToggle(item) }
+                        )
+                    }
                 }
             }
         }
     }
+
+    if (showAddDialog) {
+        var taskTitle by remember { mutableStateOf("") }
+        AlertDialog(
+            onDismissRequest = { showAddDialog = false },
+            title = { Text("Add New Task") },
+            text = {
+                TextField(
+                    value = taskTitle,
+                    onValueChange = { taskTitle = it },
+                    placeholder = { Text("e.g., Evening Puja") },
+                    singleLine = true,
+                    colors = TextFieldDefaults.colors(
+                        focusedIndicatorColor = SaffronPrimary,
+                        cursorColor = SaffronPrimary
+                    )
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        if (taskTitle.isNotBlank()) {
+                            onAddTask(taskTitle)
+                            showAddDialog = false
+                        }
+                    }
+                ) {
+                    Text("Add", color = SaffronPrimary)
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showAddDialog = false }) {
+                    Text("Cancel")
+                }
+            }
+        )
+    }
 }
 
 @Composable
-fun RoutineItem(title: String, isDone: Boolean, onToggle: () -> Unit) {
+fun RoutineItemRow(item: RoutineItem, onToggle: () -> Unit) {
     Surface(
         onClick = onToggle,
         color = Color.Transparent,
@@ -288,16 +354,16 @@ fun RoutineItem(title: String, isDone: Boolean, onToggle: () -> Unit) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             Checkbox(
-                checked = isDone,
+                checked = item.isCompleted,
                 onCheckedChange = { onToggle() },
                 colors = CheckboxDefaults.colors(checkedColor = SaffronPrimary)
             )
             Spacer(modifier = Modifier.width(12.dp))
             Text(
-                text = title,
+                text = item.title,
                 style = MaterialTheme.typography.bodyLarge,
-                color = if (isDone) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f) else MaterialTheme.colorScheme.onSurface,
-                textDecoration = if (isDone) androidx.compose.ui.text.style.TextDecoration.LineThrough else null
+                color = if (item.isCompleted) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f) else MaterialTheme.colorScheme.onSurface,
+                textDecoration = if (item.isCompleted) androidx.compose.ui.text.style.TextDecoration.LineThrough else null
             )
         }
     }
