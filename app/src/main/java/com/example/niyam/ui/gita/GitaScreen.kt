@@ -181,15 +181,19 @@ fun VerseView(
                         )
                         Spacer(modifier = Modifier.height(24.dp))
                         
-                        state.verse.siva?.let { trans ->
-                            Text("Translation", fontWeight = FontWeight.Bold, color = SaffronPrimary)
-                            Text(trans.et ?: "No translation available", style = MaterialTheme.typography.bodyLarge)
-                            
-                            trans.ec?.let { comm ->
-                                Spacer(modifier = Modifier.height(16.dp))
-                                Text("Commentary", fontWeight = FontWeight.Bold, color = SaffronPrimary)
-                                Text(comm, style = MaterialTheme.typography.bodyMedium)
+                        if (state.verse.translations.isNotEmpty()) {
+                            Text("Translations", fontWeight = FontWeight.Bold, color = SaffronPrimary, style = MaterialTheme.typography.titleMedium)
+                            state.verse.translations.forEach { trans ->
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(trans.authorName, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
+                                Text(trans.description, style = MaterialTheme.typography.bodyMedium)
                             }
+                        }
+
+                        if (state.verse.wordMeanings.isNotEmpty()) {
+                            Spacer(modifier = Modifier.height(24.dp))
+                            Text("Word Meanings", fontWeight = FontWeight.Bold, color = SaffronPrimary, style = MaterialTheme.typography.titleMedium)
+                            Text(state.verse.wordMeanings, style = MaterialTheme.typography.bodyMedium)
                         }
                     }
                 }

@@ -6,26 +6,25 @@ data class Chapter(
     @SerializedName("chapter_number") val chapterNumber: Int,
     @SerializedName("verses_count") val versesCount: Int,
     val name: String,
-    val translation: String,
-    val transliteration: String,
-    val summary: Summary
-)
-
-data class Summary(
-    val en: String,
-    val hi: String
+    @SerializedName("name_translation") val translation: String,
+    @SerializedName("name_transliterated") val transliteration: String,
+    @SerializedName("chapter_summary") val summaryEn: String,
+    @SerializedName("chapter_summary_hindi") val summaryHi: String
 )
 
 data class Verse(
-    val chapter: Int,
-    val verse: Int,
-    val slok: String,
+    @SerializedName("chapter_number") val chapterNumber: Int,
+    @SerializedName("verse_number") val verseNumber: Int,
+    @SerializedName("verse_id") val verseId: Int,
+    @SerializedName("text") val slok: String,
     val transliteration: String,
-    val siva: TranslationAndCommentary?
+    @SerializedName("word_meanings") val wordMeanings: String,
+    val translations: List<Translation> = emptyList()
 )
 
-data class TranslationAndCommentary(
-    val author: String,
-    val et: String? = null, // English translation
-    val ec: String? = null  // English commentary
+data class Translation(
+    @SerializedName("verse_id") val verseId: Int,
+    @SerializedName("lang") val language: String,
+    val description: String,
+    val authorName: String
 )

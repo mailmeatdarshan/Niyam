@@ -35,7 +35,7 @@ object NetworkModule {
     @Singleton
     fun provideGitaApi(okHttpClient: OkHttpClient): GitaApi {
         return Retrofit.Builder()
-            .baseUrl("https://bhagavadgitaapi.in/")
+            .baseUrl("https://raw.githubusercontent.com/praneshp1org/Bhagavad-Gita-JSON-data/main/")
             .client(okHttpClient)
             .addConverterFactory(GsonConverterFactory.create())
             .build()
