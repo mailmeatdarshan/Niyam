@@ -15,6 +15,8 @@ import com.example.niyam.ui.gita.GitaViewModel
 import com.example.niyam.ui.home.HomeScreen
 import com.example.niyam.ui.home.RoutineViewModel
 import com.example.niyam.ui.meditation.MeditationScreen
+import com.example.niyam.ui.task.TaskScreen
+import com.example.niyam.ui.task.TaskViewModel
 import com.example.niyam.ui.theme.NiyamTheme
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -42,6 +44,7 @@ fun NiyamNavHost() {
                 onNavigateToMeditation = { navController.navigate("meditation") },
                 onNavigateToGita = { navController.navigate("gita") },
                 onNavigateToBhajan = { navController.navigate("bhajan") },
+                onNavigateToTasks = { navController.navigate("tasks") },
                 routineViewModel = routineViewModel
             )
         }
@@ -59,6 +62,13 @@ fun NiyamNavHost() {
         }
         composable("bhajan") {
             BhajanScreen(
+                onBackClick = { navController.popBackStack() }
+            )
+        }
+        composable("tasks") {
+            val taskViewModel: TaskViewModel = hiltViewModel()
+            TaskScreen(
+                viewModel = taskViewModel,
                 onBackClick = { navController.popBackStack() }
             )
         }

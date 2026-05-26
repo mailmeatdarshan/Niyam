@@ -181,16 +181,16 @@ fun VerseView(
                         )
                         Spacer(modifier = Modifier.height(24.dp))
                         
-                        if (state.verse.translations.isNotEmpty()) {
+                        if (!state.verse.translations.isNullOrEmpty()) {
                             Text("Translations", fontWeight = FontWeight.Bold, color = SaffronPrimary, style = MaterialTheme.typography.titleMedium)
                             state.verse.translations.forEach { trans ->
                                 Spacer(modifier = Modifier.height(8.dp))
-                                Text(trans.authorName, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
-                                Text(trans.description, style = MaterialTheme.typography.bodyMedium)
+                                Text(trans.authorName ?: "Unknown", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
+                                Text(trans.description ?: "", style = MaterialTheme.typography.bodyMedium)
                             }
                         }
 
-                        if (state.verse.wordMeanings.isNotEmpty()) {
+                        if (!state.verse.wordMeanings.isNullOrBlank()) {
                             Spacer(modifier = Modifier.height(24.dp))
                             Text("Word Meanings", fontWeight = FontWeight.Bold, color = SaffronPrimary, style = MaterialTheme.typography.titleMedium)
                             Text(state.verse.wordMeanings, style = MaterialTheme.typography.bodyMedium)

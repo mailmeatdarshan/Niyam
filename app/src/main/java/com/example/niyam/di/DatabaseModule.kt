@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.room.Room
 import com.example.niyam.data.local.NiyamDatabase
 import com.example.niyam.data.local.RoutineDao
+import com.example.niyam.data.local.TaskDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -28,5 +29,10 @@ object DatabaseModule {
     @Provides
     fun provideRoutineDao(database: NiyamDatabase): RoutineDao {
         return database.routineDao()
+    }
+
+    @Provides
+    fun provideTaskDao(database: NiyamDatabase): TaskDao {
+        return database.taskDao()
     }
 }

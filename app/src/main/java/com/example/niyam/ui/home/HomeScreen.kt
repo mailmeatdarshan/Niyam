@@ -26,6 +26,7 @@ fun HomeScreen(
     onNavigateToMeditation: () -> Unit,
     onNavigateToGita: () -> Unit,
     onNavigateToBhajan: () -> Unit,
+    onNavigateToTasks: () -> Unit,
     routineViewModel: RoutineViewModel
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
@@ -67,6 +68,7 @@ fun HomeScreen(
                             "Meditation" -> onNavigateToMeditation()
                             "Gita" -> onNavigateToGita()
                             "Bhajan" -> onNavigateToBhajan()
+                            "Tasks" -> onNavigateToTasks()
                             else -> showNotImplementedMessage(it)
                         }
                     }
