@@ -42,27 +42,35 @@ class GitaViewModel @Inject constructor(
 
     private fun fetchChapters() {
         viewModelScope.launch {
-            _uiState.value = GitaUiState.Loading
-            repository.getChapters()
-                .onSuccess { chapters ->
-                    _uiState.value = GitaUiState.Success(chapters)
-                }
-                .onFailure { error ->
-                    _uiState.value = GitaUiState.Error(error.message ?: "Unknown error")
-                }
+            try {
+                _uiState.value = GitaUiState.Loading
+                repository.getChapters()
+                    .onSuccess { chapters ->
+                        _uiState.value = GitaUiState.Success(chapters)
+                    }
+                    .onFailure { error ->
+                        _uiState.value = GitaUiState.Error(error.message ?: "Unknown error")
+                    }
+            } catch (e: Exception) {
+                _uiState.value = GitaUiState.Error(e.message ?: "Connection error")
+            }
         }
     }
 
     fun fetchVerse(chapterNumber: Int, verseNumber: Int) {
         viewModelScope.launch {
-            _verseState.value = VerseUiState.Loading
-            repository.getVerse(chapterNumber, verseNumber)
-                .onSuccess { verse ->
-                    _verseState.value = VerseUiState.Success(verse)
-                }
-                .onFailure { error ->
-                    _verseState.value = VerseUiState.Error(error.message ?: "Unknown error")
-                }
+            try {
+                _verseState.value = VerseUiState.Loading
+                repository.getVerse(chapterNumber, verseNumber)
+                    .onSuccess { verse ->
+                        _verseState.value = VerseUiState.Success(verse)
+                    }
+                    .onFailure { error ->
+                        _verseState.value = VerseUiState.Error(error.message ?: "Unknown error")
+                    }
+            } catch (e: Exception) {
+                _verseState.value = VerseUiState.Error(e.message ?: "Connection error")
+            }
         }
     }
 

@@ -26,21 +26,33 @@ class RoutineViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            if (repository.allItems.first().isEmpty()) {
-                repository.initializeDefaultTasks()
+            try {
+                if (repository.allItems.first().isEmpty()) {
+                    repository.initializeDefaultTasks()
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
             }
         }
     }
 
     fun toggleTask(item: RoutineItem) {
         viewModelScope.launch {
-            repository.update(item.copy(isCompleted = !item.isCompleted))
+            try {
+                repository.update(item.copy(isCompleted = !item.isCompleted))
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
         }
     }
 
     fun addTask(title: String) {
         viewModelScope.launch {
-            repository.insert(RoutineItem(title = title))
+            try {
+                repository.insert(RoutineItem(title = title))
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
         }
     }
 

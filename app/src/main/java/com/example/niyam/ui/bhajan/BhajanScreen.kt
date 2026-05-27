@@ -9,10 +9,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.rounded.Forward10
-import androidx.compose.material.icons.rounded.Pause
-import androidx.compose.material.icons.rounded.PlayArrow
-import androidx.compose.material.icons.rounded.Replay10
+import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -26,11 +23,37 @@ import com.example.niyam.data.local.Bhajan
 import com.example.niyam.data.local.BhajanProvider
 import com.example.niyam.ui.theme.SaffronPrimary
 import com.example.niyam.ui.theme.SaffronLight
+import kotlinx.coroutines.delay
+
+import android.media.MediaPlayer
+import androidx.compose.ui.platform.LocalContext
+import com.example.niyam.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BhajanScreen(onBackClick: () -> Unit) {
     var selectedBhajan by remember { mutableStateOf<Bhajan?>(null) }
+    val context = LocalContext.current
+    val mediaPlayer = remember { MediaPlayer() }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            mediaPlayer.release()
+        }
+    }
+
+    LaunchedEffect(selectedBhajan) {
+        if (selectedBhajan?.audioResId != null) {
+            mediaPlayer.reset()
+            val afd = context.resources.openRawResourceFd(selectedBhajan!!.audioResId!!)
+            mediaPlayer.setDataSource(afd.fileDescriptor, afd.startOffset, afd.length)
+            afd.close()
+            mediaPlayer.prepare()
+        } else {
+            mediaPlayer.stop()
+            mediaPlayer.reset()
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -38,7 +61,11 @@ fun BhajanScreen(onBackClick: () -> Unit) {
                 title = { Text(selectedBhajan?.title ?: "Bhajans", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = {
-                        if (selectedBhajan != null) selectedBhajan = null
+                        if (selectedBhajan != null) {
+                            selectedBhajan = null
+                            mediaPlayer.stop()
+                            mediaPlayer.reset()
+                        }
                         else onBackClick()
                     }) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back")
@@ -47,8 +74,8 @@ fun BhajanScreen(onBackClick: () -> Unit) {
             )
         },
         bottomBar = {
-            if (selectedBhajan != null) {
-                BhajanAudioPlayer()
+            if (selectedBhajan?.audioResId != null) {
+                BhajanAudioPlayer(mediaPlayer)
             }
         }
     ) { padding ->
@@ -56,7 +83,9 @@ fun BhajanScreen(onBackClick: () -> Unit) {
             if (selectedBhajan == null) {
                 BhajanList(onBhajanClick = { selectedBhajan = it })
             } else {
-                BhajanDetail(bhajan = selectedBhajan!!)
+                selectedBhajan?.let { bhajan ->
+                    BhajanDetail(bhajan = bhajan)
+                }
             }
         }
     }
@@ -136,10 +165,25 @@ fun BhajanDetail(bhajan: Bhajan) {
 }
 
 @Composable
-fun BhajanAudioPlayer() {
-    // These states will be connected to the actual media player later
+fun BhajanAudioPlayer(mediaPlayer: MediaPlayer) {
     var isPlaying by remember { mutableStateOf(false) }
-    var progress by remember { mutableFloatStateOf(0.3f) }
+    var progress by remember { mutableFloatStateOf(0f) }
+    var currentTime by remember { mutableStateOf("00:00") }
+    var totalTime by remember { mutableStateOf("00:00") }
+
+    LaunchedEffect(mediaPlayer) {
+        while (true) {
+            if (mediaPlayer.isPlaying) {
+                isPlaying = true
+                progress = mediaPlayer.currentPosition.toFloat() / mediaPlayer.duration.toFloat()
+                currentTime = formatMediaPlayerTime(mediaPlayer.currentPosition)
+                totalTime = formatMediaPlayerTime(mediaPlayer.duration)
+            } else {
+                isPlaying = false
+            }
+            delay(500)
+        }
+    }
 
     Surface(
         modifier = Modifier
@@ -157,7 +201,10 @@ fun BhajanAudioPlayer() {
             // Seek Bar
             Slider(
                 value = progress,
-                onValueChange = { progress = it },
+                onValueChange = { 
+                    progress = it
+                    mediaPlayer.seekTo((it * mediaPlayer.duration).toInt())
+                },
                 colors = SliderDefaults.colors(
                     thumbColor = SaffronPrimary,
                     activeTrackColor = SaffronPrimary,
@@ -170,8 +217,8 @@ fun BhajanAudioPlayer() {
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text("01:24", style = MaterialTheme.typography.labelSmall)
-                Text("04:30", style = MaterialTheme.typography.labelSmall)
+                Text(currentTime, style = MaterialTheme.typography.labelSmall)
+                Text(totalTime, style = MaterialTheme.typography.labelSmall)
             }
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -182,19 +229,35 @@ fun BhajanAudioPlayer() {
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                IconButton(onClick = { /* Seek backward 10s */ }) {
-                    Icon(Icons.Rounded.Replay10, contentDescription = "Rewind", tint = SaffronPrimary, modifier = Modifier.size(32.dp))
+                IconButton(onClick = { 
+                    val newPos = mediaPlayer.currentPosition - 10000
+                    mediaPlayer.seekTo(if (newPos > 0) newPos else 0)
+                }) {
+                    Icon(
+                        imageVector = Icons.Default.Replay,
+                        contentDescription = "Rewind",
+                        tint = SaffronPrimary,
+                        modifier = Modifier.size(32.dp)
+                    )
                 }
                 
                 Spacer(modifier = Modifier.width(24.dp))
 
                 FilledIconButton(
-                    onClick = { isPlaying = !isPlaying },
+                    onClick = { 
+                        if (mediaPlayer.isPlaying) {
+                            mediaPlayer.pause()
+                            isPlaying = false
+                        } else {
+                            mediaPlayer.start()
+                            isPlaying = true
+                        }
+                    },
                     modifier = Modifier.size(56.dp),
                     colors = IconButtonDefaults.filledIconButtonColors(containerColor = SaffronPrimary)
                 ) {
                     Icon(
-                        imageVector = if (isPlaying) Icons.Rounded.Pause else Icons.Rounded.PlayArrow,
+                        imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
                         contentDescription = if (isPlaying) "Pause" else "Play",
                         modifier = Modifier.size(32.dp)
                     )
@@ -202,10 +265,25 @@ fun BhajanAudioPlayer() {
 
                 Spacer(modifier = Modifier.width(24.dp))
 
-                IconButton(onClick = { /* Seek forward 10s */ }) {
-                    Icon(Icons.Rounded.Forward10, contentDescription = "Forward", tint = SaffronPrimary, modifier = Modifier.size(32.dp))
+                IconButton(onClick = { 
+                    val newPos = mediaPlayer.currentPosition + 10000
+                    mediaPlayer.seekTo(if (newPos < mediaPlayer.duration) newPos else mediaPlayer.duration)
+                }) {
+                    Icon(
+                        imageVector = Icons.Default.Refresh,
+                        contentDescription = "Forward",
+                        tint = SaffronPrimary,
+                        modifier = Modifier.size(32.dp)
+                    )
                 }
             }
         }
     }
+}
+
+fun formatMediaPlayerTime(milliseconds: Int): String {
+    val totalSeconds = milliseconds / 1000
+    val minutes = totalSeconds / 60
+    val seconds = totalSeconds % 60
+    return String.format("%02d:%02d", minutes, seconds)
 }

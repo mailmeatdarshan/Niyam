@@ -1,10 +1,13 @@
 package com.example.niyam.data.local
 
+import com.example.niyam.R
+
 data class Bhajan(
     val id: String,
     val title: String,
     val subtitle: String,
-    val content: String
+    val content: String,
+    val audioResId: Int? = null
 )
 
 object BhajanProvider {
@@ -13,6 +16,7 @@ object BhajanProvider {
             id = "hanuman-chalisa",
             title = "Hanuman Chalisa",
             subtitle = "By Goswami Tulsidas",
+            audioResId = R.raw.hanuman_chalisa,
             content = """
                 Doha:
                 Shri Guru Charan Saroj Raj, Nij Man Mukur Sudhari,

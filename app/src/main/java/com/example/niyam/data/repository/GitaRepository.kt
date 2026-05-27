@@ -26,7 +26,8 @@ class GitaRepository @Inject constructor(
     suspend fun getVerse(chapterNumber: Int, verseNumber: Int): Result<Verse> = withContext(Dispatchers.IO) {
         runCatching {
             val allVerses = if (versesCache == null) {
-                api.getAllVerses().groupBy { it.chapterNumber }.also { versesCache = it }
+                val response = api.getAllVerses()
+                response.groupBy { it.chapterNumber }.also { versesCache = it }
             } else {
                 versesCache!!
             }
@@ -35,7 +36,8 @@ class GitaRepository @Inject constructor(
                 ?: throw NoSuchElementException("Verse $chapterNumber.$verseNumber not found")
             
             val allTranslations = if (translationsCache == null) {
-                api.getAllTranslations().groupBy { it.verseId }.also { translationsCache = it }
+                val response = api.getAllTranslations()
+                response.groupBy { it.verseId }.also { translationsCache = it }
             } else {
                 translationsCache!!
             }

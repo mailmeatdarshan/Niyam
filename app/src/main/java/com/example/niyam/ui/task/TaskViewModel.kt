@@ -33,15 +33,20 @@ class TaskViewModel @Inject constructor(
         category: String = "General"
     ) {
         viewModelScope.launch {
-            repository.insert(
-                TaskItem(
-                    title = title,
-                    description = description,
-                    priority = priority,
-                    dueDate = dueDate,
-                    category = category
+            try {
+                repository.insert(
+                    TaskItem(
+                        title = title,
+                        description = description,
+                        priority = priority,
+                        dueDate = dueDate,
+                        category = category
+                    )
                 )
-            )
+            } catch (e: Exception) {
+                // Log or handle error
+                e.printStackTrace()
+            }
         }
     }
 

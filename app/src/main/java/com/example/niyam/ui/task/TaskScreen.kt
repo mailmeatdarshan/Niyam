@@ -39,8 +39,8 @@ fun TaskScreen(
 ) {
     val tasks by viewModel.allTasks.collectAsState()
     var showAddSheet by remember { mutableStateOf(false) }
-    
-    val sheetState = rememberModalBottomSheetState()
+    val scope = rememberCoroutineScope()
+    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     Scaffold(
         topBar = {
@@ -95,8 +95,14 @@ fun TaskScreen(
         AddTaskBottomSheet(
             onDismiss = { showAddSheet = false },
             onAddTask = { title, desc, priority ->
-                viewModel.addTask(title, desc, priority)
-                showAddSheet = false
+                scope.launch {
+                    viewModel.addTask(title, desc, priority)
+                    sheetState.hide()
+                }.invokeOnCompletion {
+                    if (!sheetState.isVisible) {
+                        showAddSheet = false
+                    }
+                }
             },
             sheetState = sheetState
         )

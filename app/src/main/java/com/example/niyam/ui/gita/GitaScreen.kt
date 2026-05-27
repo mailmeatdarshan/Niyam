@@ -106,8 +106,8 @@ fun ChapterList(chapters: List<Chapter>, onChapterClick: (Chapter) -> Unit) {
                     }
                     Spacer(modifier = Modifier.width(16.dp))
                     Column {
-                        Text(chapter.name, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
-                        Text(chapter.translation, style = MaterialTheme.typography.bodySmall)
+                        Text(chapter.name ?: "Unknown Chapter", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
+                        Text(chapter.translation ?: "", style = MaterialTheme.typography.bodySmall)
                     }
                 }
             }
@@ -163,7 +163,7 @@ fun VerseView(
                 LazyColumn(modifier = Modifier.fillMaxSize()) {
                     item {
                         Text(
-                            text = state.verse.slok,
+                            text = state.verse.slok ?: "",
                             fontSize = 20.sp,
                             fontWeight = FontWeight.Bold,
                             color = SaffronPrimary,
@@ -173,7 +173,7 @@ fun VerseView(
                         )
                         Spacer(modifier = Modifier.height(16.dp))
                         Text(
-                            text = state.verse.transliteration,
+                            text = state.verse.transliteration ?: "",
                             style = MaterialTheme.typography.bodyMedium,
                             fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
                             textAlign = androidx.compose.ui.text.style.TextAlign.Center,
@@ -183,7 +183,7 @@ fun VerseView(
                         
                         if (!state.verse.translations.isNullOrEmpty()) {
                             Text("Translations", fontWeight = FontWeight.Bold, color = SaffronPrimary, style = MaterialTheme.typography.titleMedium)
-                            state.verse.translations.forEach { trans ->
+                            state.verse.translations?.forEach { trans ->
                                 Spacer(modifier = Modifier.height(8.dp))
                                 Text(trans.authorName ?: "Unknown", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
                                 Text(trans.description ?: "", style = MaterialTheme.typography.bodyMedium)
@@ -193,7 +193,7 @@ fun VerseView(
                         if (!state.verse.wordMeanings.isNullOrBlank()) {
                             Spacer(modifier = Modifier.height(24.dp))
                             Text("Word Meanings", fontWeight = FontWeight.Bold, color = SaffronPrimary, style = MaterialTheme.typography.titleMedium)
-                            Text(state.verse.wordMeanings, style = MaterialTheme.typography.bodyMedium)
+                            Text(state.verse.wordMeanings ?: "", style = MaterialTheme.typography.bodyMedium)
                         }
                     }
                 }
