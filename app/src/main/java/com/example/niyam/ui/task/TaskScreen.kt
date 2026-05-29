@@ -315,7 +315,7 @@ fun AddTaskBottomSheet(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                TaskPriority.values().forEach { p ->
+                TaskPriority.entries.forEach { p ->
                     FilterChip(
                         selected = priority == p,
                         onClick = { priority = p },

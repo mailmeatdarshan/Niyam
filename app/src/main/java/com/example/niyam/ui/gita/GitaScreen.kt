@@ -121,9 +121,9 @@ fun VerseView(
     verseState: VerseUiState,
     onFetchVerse: (Int, Int) -> Unit
 ) {
-    var verseNumber by remember { mutableIntStateOf(1) }
+    var verseNumber by remember(chapter.chapterNumber) { mutableIntStateOf(1) }
 
-    LaunchedEffect(verseNumber) {
+    LaunchedEffect(verseNumber, chapter.chapterNumber) {
         onFetchVerse(chapter.chapterNumber, verseNumber)
     }
 

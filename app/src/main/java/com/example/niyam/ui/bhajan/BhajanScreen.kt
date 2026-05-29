@@ -36,22 +36,47 @@ fun BhajanScreen(onBackClick: () -> Unit) {
     val context = LocalContext.current
     val mediaPlayer = remember { MediaPlayer() }
 
+    var isPlaying by remember { mutableStateOf(false) }
+
     DisposableEffect(Unit) {
         onDispose {
             mediaPlayer.release()
         }
     }
 
+    fun isMediaPlayerSafe(): Boolean {
+        return try {
+            mediaPlayer.isPlaying
+            true
+        } catch (e: IllegalStateException) {
+            false
+        }
+    }
+
     LaunchedEffect(selectedBhajan) {
-        if (selectedBhajan?.audioResId != null) {
-            mediaPlayer.reset()
-            val afd = context.resources.openRawResourceFd(selectedBhajan!!.audioResId!!)
-            mediaPlayer.setDataSource(afd.fileDescriptor, afd.startOffset, afd.length)
-            afd.close()
-            mediaPlayer.prepare()
-        } else {
-            mediaPlayer.stop()
-            mediaPlayer.reset()
+        try {
+            if (selectedBhajan?.audioResId != null) {
+                mediaPlayer.reset()
+                val afd = context.resources.openRawResourceFd(selectedBhajan!!.audioResId!!)
+                mediaPlayer.setDataSource(afd.fileDescriptor, afd.startOffset, afd.length)
+                afd.close()
+                mediaPlayer.setOnPreparedListener {
+                    isPlaying = false
+                }
+                mediaPlayer.setOnCompletionListener {
+                    isPlaying = false
+                }
+                mediaPlayer.prepare()
+            } else {
+                if (isMediaPlayerSafe() && mediaPlayer.isPlaying) {
+                    mediaPlayer.stop()
+                }
+                mediaPlayer.reset()
+                isPlaying = false
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            isPlaying = false
         }
     }
 
@@ -62,9 +87,11 @@ fun BhajanScreen(onBackClick: () -> Unit) {
                 navigationIcon = {
                     IconButton(onClick = {
                         if (selectedBhajan != null) {
-                            selectedBhajan = null
-                            mediaPlayer.stop()
+                            if (isMediaPlayerSafe() && mediaPlayer.isPlaying) {
+                                mediaPlayer.stop()
+                            }
                             mediaPlayer.reset()
+                            selectedBhajan = null
                         }
                         else onBackClick()
                     }) {
@@ -75,7 +102,7 @@ fun BhajanScreen(onBackClick: () -> Unit) {
         },
         bottomBar = {
             if (selectedBhajan?.audioResId != null) {
-                BhajanAudioPlayer(mediaPlayer)
+                BhajanAudioPlayer(mediaPlayer, isPlaying, onPlayingChange = { isPlaying = it })
             }
         }
     ) { padding ->
@@ -165,21 +192,39 @@ fun BhajanDetail(bhajan: Bhajan) {
 }
 
 @Composable
-fun BhajanAudioPlayer(mediaPlayer: MediaPlayer) {
-    var isPlaying by remember { mutableStateOf(false) }
+fun BhajanAudioPlayer(
+    mediaPlayer: MediaPlayer,
+    isPlaying: Boolean,
+    onPlayingChange: (Boolean) -> Unit
+) {
     var progress by remember { mutableFloatStateOf(0f) }
     var currentTime by remember { mutableStateOf("00:00") }
     var totalTime by remember { mutableStateOf("00:00") }
 
     LaunchedEffect(mediaPlayer) {
         while (true) {
-            if (mediaPlayer.isPlaying) {
-                isPlaying = true
-                progress = mediaPlayer.currentPosition.toFloat() / mediaPlayer.duration.toFloat()
-                currentTime = formatMediaPlayerTime(mediaPlayer.currentPosition)
-                totalTime = formatMediaPlayerTime(mediaPlayer.duration)
-            } else {
-                isPlaying = false
+            try {
+                // Only check if it's safe to call isPlaying
+                val safeToQuery = try {
+                    mediaPlayer.isPlaying
+                    true
+                } catch (e: Exception) {
+                    false
+                }
+
+                if (safeToQuery && mediaPlayer.isPlaying) {
+                    onPlayingChange(true)
+                    val duration = mediaPlayer.duration
+                    if (duration > 0) {
+                        progress = mediaPlayer.currentPosition.toFloat() / duration.toFloat()
+                        currentTime = formatMediaPlayerTime(mediaPlayer.currentPosition)
+                        totalTime = formatMediaPlayerTime(duration)
+                    }
+                } else {
+                    onPlayingChange(false)
+                }
+            } catch (e: Exception) {
+                onPlayingChange(false)
             }
             delay(500)
         }
@@ -203,7 +248,12 @@ fun BhajanAudioPlayer(mediaPlayer: MediaPlayer) {
                 value = progress,
                 onValueChange = { 
                     progress = it
-                    mediaPlayer.seekTo((it * mediaPlayer.duration).toInt())
+                    try {
+                        val duration = mediaPlayer.duration
+                        if (duration > 0) {
+                            mediaPlayer.seekTo((it * duration).toInt())
+                        }
+                    } catch (e: Exception) {}
                 },
                 colors = SliderDefaults.colors(
                     thumbColor = SaffronPrimary,
@@ -230,8 +280,10 @@ fun BhajanAudioPlayer(mediaPlayer: MediaPlayer) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 IconButton(onClick = { 
-                    val newPos = mediaPlayer.currentPosition - 10000
-                    mediaPlayer.seekTo(if (newPos > 0) newPos else 0)
+                    try {
+                        val newPos = mediaPlayer.currentPosition - 10000
+                        mediaPlayer.seekTo(if (newPos > 0) newPos else 0)
+                    } catch (e: Exception) {}
                 }) {
                     Icon(
                         imageVector = Icons.Default.Replay,
@@ -245,12 +297,16 @@ fun BhajanAudioPlayer(mediaPlayer: MediaPlayer) {
 
                 FilledIconButton(
                     onClick = { 
-                        if (mediaPlayer.isPlaying) {
-                            mediaPlayer.pause()
-                            isPlaying = false
-                        } else {
-                            mediaPlayer.start()
-                            isPlaying = true
+                        try {
+                            if (mediaPlayer.isPlaying) {
+                                mediaPlayer.pause()
+                                onPlayingChange(false)
+                            } else {
+                                mediaPlayer.start()
+                                onPlayingChange(true)
+                            }
+                        } catch (e: Exception) {
+                            onPlayingChange(false)
                         }
                     },
                     modifier = Modifier.size(56.dp),
@@ -266,8 +322,11 @@ fun BhajanAudioPlayer(mediaPlayer: MediaPlayer) {
                 Spacer(modifier = Modifier.width(24.dp))
 
                 IconButton(onClick = { 
-                    val newPos = mediaPlayer.currentPosition + 10000
-                    mediaPlayer.seekTo(if (newPos < mediaPlayer.duration) newPos else mediaPlayer.duration)
+                    try {
+                        val duration = mediaPlayer.duration
+                        val newPos = mediaPlayer.currentPosition + 10000
+                        mediaPlayer.seekTo(if (newPos < duration) newPos else duration)
+                    } catch (e: Exception) {}
                 }) {
                     Icon(
                         imageVector = Icons.Default.Refresh,
