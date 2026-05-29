@@ -28,6 +28,7 @@ import com.example.niyam.data.local.TaskPriority
 import com.example.niyam.data.local.TaskStatus
 import com.example.niyam.ui.theme.SaffronPrimary
 import com.example.niyam.ui.theme.SaffronLight
+import kotlinx.coroutines.*
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -95,13 +96,10 @@ fun TaskScreen(
         AddTaskBottomSheet(
             onDismiss = { showAddSheet = false },
             onAddTask = { title, desc, priority ->
+                viewModel.addTask(title, desc, priority)
                 scope.launch {
-                    viewModel.addTask(title, desc, priority)
                     sheetState.hide()
-                }.invokeOnCompletion {
-                    if (!sheetState.isVisible) {
-                        showAddSheet = false
-                    }
+                    showAddSheet = false
                 }
             },
             sheetState = sheetState
