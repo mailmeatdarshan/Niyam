@@ -36,8 +36,12 @@ fun NiyamTheme(
     if (!view.isInEditMode) {
         SideEffect {
             var context = view.context
-            while (context is android.content.ContextWrapper && context !is Activity) {
-                context = context.baseContext
+            while (context !is Activity) {
+                if (context is android.content.ContextWrapper) {
+                    context = context.baseContext
+                } else {
+                    break
+                }
             }
             val activity = context as? Activity
             activity?.window?.let { window ->
