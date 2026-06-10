@@ -459,3 +459,9 @@ private fun progressSemanticsDecay(): AnimationSpec<Float> = tween(
     durationMillis = 100,
     easing = LinearEasing
 )
+
+fun formatTime(timeInMillis: Long): String {
+    val minutes = (timeInMillis / 1000) / 60
+    val seconds = (timeInMillis / 1000) % 60
+    return String.format(Locale.getDefault(), "%02d:%02d", minutes, seconds)
+}

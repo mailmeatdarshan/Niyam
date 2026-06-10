@@ -23,6 +23,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -240,7 +241,7 @@ fun WaterIntakeScreen(onBackClick: () -> Unit) {
 }
 
 @Composable
-fun WaterCupAnimation(fillRatio: java.lang.Float, modifier: Modifier = Modifier) {
+fun WaterCupAnimation(fillRatio: Float, modifier: Modifier = Modifier) {
     // Smooth transition for fill height
     val animatedFillRatio by animateFloatAsState(
         targetValue = Math.min(1.0f, Math.max(0.0f, fillRatio.toFloat())),
