@@ -35,18 +35,22 @@ fun NiyamTheme(
     val view = LocalView.current
     if (!view.isInEditMode) {
         SideEffect {
-            var context = view.context
-            while (context !is Activity) {
-                if (context is android.content.ContextWrapper) {
-                    context = context.baseContext
-                } else {
-                    break
+            try {
+                var context = view.context
+                while (context !is Activity) {
+                    if (context is android.content.ContextWrapper) {
+                        context = context.baseContext
+                    } else {
+                        break
+                    }
                 }
-            }
-            val activity = context as? Activity
-            activity?.window?.let { window ->
-                window.statusBarColor = colorScheme.background.toArgb()
-                WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = false
+                val activity = context as? Activity
+                activity?.window?.let { window ->
+                    window.statusBarColor = colorScheme.background.toArgb()
+                    WindowCompat.getInsetsController(window, view).isAppearanceLightStatusBars = false
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
             }
         }
     }
