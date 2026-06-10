@@ -1,7 +1,9 @@
 package com.example.niyam.ui.home
 
+import android.graphics.BitmapFactory
 import androidx.compose.animation.*
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -18,7 +20,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -28,6 +34,7 @@ import com.example.niyam.data.local.RoutineItem
 import com.example.niyam.ui.theme.SaffronPrimary
 import com.example.niyam.ui.theme.SaffronSecondary
 import com.example.niyam.ui.theme.SaffronTertiary
+import java.io.File
 import java.util.Calendar
 
 @Composable
@@ -38,6 +45,11 @@ fun HomeScreen(
     onNavigateToTasks: () -> Unit,
     onNavigateToWater: () -> Unit,
     onNavigateToFocus: () -> Unit,
+    onNavigateToProfile: () -> Unit,
+    onNavigateToSettings: () -> Unit,
+    onNavigateToAbout: () -> Unit,
+    userName: String,
+    userPfpPath: String?,
     routineViewModel: RoutineViewModel
 ) {
     val snackbarHostState = remember { SnackbarHostState() }
@@ -93,7 +105,12 @@ fun HomeScreen(
 
     Scaffold(
         topBar = {
-            HomeTopBar()
+            HomeTopBar(
+                pfpPath = userPfpPath,
+                onNavigateToProfile = onNavigateToProfile,
+                onNavigateToSettings = onNavigateToSettings,
+                onNavigateToAbout = onNavigateToAbout
+            )
         },
         snackbarHost = { SnackbarHost(snackbarHostState) }
     ) { padding ->
@@ -120,7 +137,7 @@ fun HomeScreen(
                 // 1. Dynamic time-based & spiritual greeting
                 item {
                     Spacer(modifier = Modifier.height(4.dp))
-                    GreetingSection(timeGreeting)
+                    GreetingSection(greetingText = timeGreeting, userName = userName)
                 }
                 
                 // 2. Gita Quote Card
@@ -131,7 +148,7 @@ fun HomeScreen(
                         translation = dailyQuote.third
                     )
                 }
-
+ 
                 // 3. Quick Actions 2x3 Grid
                 item {
                     QuickActionsGrid(
@@ -147,7 +164,7 @@ fun HomeScreen(
                         }
                     )
                 }
-
+ 
                 // 4. Routine completion visual section
                 item {
                     DailyProgressSection(
@@ -163,7 +180,28 @@ fun HomeScreen(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeTopBar() {
+fun HomeTopBar(
+    pfpPath: String?,
+    onNavigateToProfile: () -> Unit,
+    onNavigateToSettings: () -> Unit,
+    onNavigateToAbout: () -> Unit
+) {
+    var menuExpanded by remember { mutableStateOf(false) }
+
+    val imageBitmap: ImageBitmap? = remember(pfpPath) {
+        try {
+            if (!pfpPath.isNullOrEmpty()) {
+                val file = File(pfpPath)
+                if (file.exists()) {
+                    BitmapFactory.decodeFile(file.absolutePath)?.asImageBitmap()
+                } else null
+            } else null
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
+    }
+
     CenterAlignedTopAppBar(
         title = {
             Text(
@@ -175,6 +213,78 @@ fun HomeTopBar() {
                 )
             )
         },
+        actions = {
+            Box {
+                IconButton(onClick = { menuExpanded = true }) {
+                    if (imageBitmap != null) {
+                        Image(
+                            bitmap = imageBitmap,
+                            contentDescription = "Profile Menu",
+                            modifier = Modifier
+                                .size(36.dp)
+                                .clip(CircleShape)
+                                .border(BorderStroke(1.5.dp, SaffronPrimary), CircleShape),
+                            contentScale = ContentScale.Crop
+                        )
+                    } else {
+                        Icon(
+                            imageVector = Icons.Default.AccountCircle,
+                            contentDescription = "Profile Menu",
+                            tint = SaffronPrimary,
+                            modifier = Modifier.size(32.dp)
+                        )
+                    }
+                }
+                
+                DropdownMenu(
+                    expanded = menuExpanded,
+                    onDismissRequest = { menuExpanded = false }
+                ) {
+                    DropdownMenuItem(
+                        text = { Text("Profile") },
+                        onClick = {
+                            menuExpanded = false
+                            onNavigateToProfile()
+                        },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.Person,
+                                contentDescription = null,
+                                tint = SaffronPrimary
+                            )
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Settings") },
+                        onClick = {
+                            menuExpanded = false
+                            onNavigateToSettings()
+                        },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.Settings,
+                                contentDescription = null,
+                                tint = SaffronPrimary
+                            )
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text("About") },
+                        onClick = {
+                            menuExpanded = false
+                            onNavigateToAbout()
+                        },
+                        leadingIcon = {
+                            Icon(
+                                imageVector = Icons.Default.Info,
+                                contentDescription = null,
+                                tint = SaffronPrimary
+                            )
+                        }
+                    )
+                }
+            }
+        },
         colors = TopAppBarDefaults.centerAlignedTopAppBarColors(
             containerColor = Color.Transparent
         )
@@ -182,7 +292,7 @@ fun HomeTopBar() {
 }
 
 @Composable
-fun GreetingSection(greetingText: String) {
+fun GreetingSection(greetingText: String, userName: String) {
     Column {
         Text(
             text = greetingText,
@@ -192,7 +302,7 @@ fun GreetingSection(greetingText: String) {
             )
         )
         Text(
-            text = "Darshan",
+            text = userName.ifEmpty { "User" },
             style = MaterialTheme.typography.headlineLarge.copy(
                 fontWeight = FontWeight.Bold,
                 color = SaffronPrimary,
