@@ -75,6 +75,7 @@ object BhajanProvider {
             id = "ram-stuti",
             title = "Shri Ram Stuti",
             subtitle = "Shri Ramachandra Kripalu Bhaju Man",
+            audioResId = R.raw.hanuman_chalisa, // Placeholder
             content = """
                 Shri Ramachandra Kripalu Bhaju Man Haran Bhava Bhaya Darunam,
                 Navakanja Lochana Kanja Mukha Kara Kanja Pada Kanjarunam.
@@ -96,6 +97,82 @@ object BhajanProvider {
 
                 Ehi Banti Gauri Asisa Suni Siya Sahita Hiyali Harishi Ali,
                 Tulsi Bhavanihi Puji Puni Puni Mudita Mana Mandira Chali.
+            """.trimIndent()
+        ),
+        Bhajan(
+            id = "karpura-gauram",
+            title = "Karpura Gauram",
+            subtitle = "Shiva Yajur Mantra",
+            audioResId = R.raw.hanuman_chalisa, // Placeholder
+            content = """
+                Karpura Gauram Karunavataram,
+                Sansara Saram Bhujagendra Haram.
+                Sada Vasantam Hridayaravinde,
+                Bhavam Bhavani Sahitam Namami.
+
+                Meaning:
+                Pure white like camphor, the embodiment of compassion,
+                The essence of worldly existence, whose garland is the king of serpents.
+                Who always dwells in the lotus of the heart,
+                I bow to Lord Shiva and Goddess Parvati together.
+            """.trimIndent()
+        ),
+        Bhajan(
+            id = "shiv-tandav",
+            title = "Shiv Tandav Stotram",
+            subtitle = "Hymn of Shiva's Cosmic Dance",
+            audioResId = R.raw.hanuman_chalisa, // Placeholder
+            content = """
+                Jatatavigalajjala pravahapavitasthale
+                Galebavalambya lambitam bhujangatungamalikam.
+                Damaddamaddamaddaman ninadavadamarvayam
+                Chakara chandatandavam tanotu nah shivah shivam.
+
+                Jata katahasambhrama bhramannilimpajhari
+                Vilolavichivalarai virajamanamurdhani.
+                Dhagadhagadhagajjvalal lalata pattapavake
+                Kishorachandrashekhare ratih pratiksanam mama.
+
+                Dharadharendranandini vilasabandhubandhura
+                Sphuraddigantasantati pramodamanamanase.
+                Krupakataksadhorani nirudhadurdharapadi
+                Kwachidigambare mano vinodametu vastuni.
+            """.trimIndent()
+        ),
+        Bhajan(
+            id = "gayatri-mantra",
+            title = "Gayatri Mantra",
+            subtitle = "Sacred Hymn of Rigveda",
+            audioResId = R.raw.hanuman_chalisa, // Placeholder
+            content = """
+                Om Bhur Bhuvah Svah
+                Tat Savitur Varenyam
+                Bhargo Devasya Dheemahi
+                Dhiyo Yo Nah Prachodayat.
+
+                Meaning:
+                We meditate on the glory of that Creator,
+                Who has created the Universe, who is worthy of worship,
+                Who is the embodiment of Knowledge and Light,
+                Who is the remover of all sins and ignorance.
+                May He enlighten our intellect.
+            """.trimIndent()
+        ),
+        Bhajan(
+            id = "mahamrityunjaya",
+            title = "Mahamrityunjaya Mantra",
+            subtitle = "Great Death-Conquering Mantra",
+            audioResId = R.raw.hanuman_chalisa, // Placeholder
+            content = """
+                Om Tryambakam Yajamahe
+                Sugandhim Pushti-Vardhanam
+                Urvarukamiva Bandhanan
+                Mrityor Mukshiya Maamritat.
+
+                Meaning:
+                We worship the three-eyed Lord Shiva, who is fragrant and nurtures all beings.
+                Just as a ripe cucumber is liberated from its bondage to the vine,
+                may He liberate us from death for the sake of immortality, and not separate us from it.
             """.trimIndent()
         )
     )

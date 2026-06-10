@@ -2,8 +2,8 @@ package com.example.niyam.ui.gita
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.niyam.data.remote.Chapter
-import com.example.niyam.data.remote.Verse
+import com.example.niyam.data.local.Chapter
+import com.example.niyam.data.local.Verse
 import com.example.niyam.data.repository.GitaRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow

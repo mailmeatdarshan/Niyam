@@ -17,7 +17,10 @@ data class TaskItem(
     val priority: TaskPriority = TaskPriority.MEDIUM,
     val dueDate: Long? = null,
     val category: String = "General",
-    val createdAt: Long = System.currentTimeMillis()
+    val createdAt: Long = System.currentTimeMillis(),
+    val streak: Int = 0,
+    val isRecurring: Boolean = false,
+    val completedAt: Long? = null
 )
 
 class TaskConverters {

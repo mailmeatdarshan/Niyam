@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.util.Calendar
 import javax.inject.Inject
 
 @HiltViewModel
@@ -30,7 +31,8 @@ class TaskViewModel @Inject constructor(
         description: String = "",
         priority: TaskPriority = TaskPriority.MEDIUM,
         dueDate: Long? = null,
-        category: String = "General"
+        category: String = "General",
+        isRecurring: Boolean = false
     ) {
         viewModelScope.launch {
             try {
@@ -40,25 +42,66 @@ class TaskViewModel @Inject constructor(
                         description = description,
                         priority = priority,
                         dueDate = dueDate,
-                        category = category
+                        category = category,
+                        isRecurring = isRecurring
                     )
                 )
             } catch (e: Exception) {
-                // Log or handle error
                 e.printStackTrace()
             }
         }
     }
 
     fun updateTaskStatus(task: TaskItem, status: TaskStatus) {
+        val completedAt = if (status == TaskStatus.DONE) System.currentTimeMillis() else null
         viewModelScope.launch {
-            repository.update(task.copy(status = status))
+            repository.update(task.copy(status = status, completedAt = completedAt))
         }
     }
 
     fun toggleTaskCompletion(task: TaskItem) {
-        val newStatus = if (task.status == TaskStatus.DONE) TaskStatus.TODO else TaskStatus.DONE
-        updateTaskStatus(task, newStatus)
+        viewModelScope.launch {
+            val isDone = task.status == TaskStatus.DONE
+            val newStatus = if (isDone) TaskStatus.TODO else TaskStatus.DONE
+            val newCompletedAt = if (newStatus == TaskStatus.DONE) System.currentTimeMillis() else null
+            
+            val newStreak = if (newStatus == TaskStatus.DONE && task.isRecurring) {
+                val lastCompleted = task.completedAt
+                if (lastCompleted != null) {
+                    val lastCal = Calendar.getInstance().apply { timeInMillis = lastCompleted }
+                    val currentCal = Calendar.getInstance()
+                    
+                    // Subtract 1 day from today to check if lastCompleted was yesterday
+                    currentCal.add(Calendar.DAY_OF_YEAR, -1)
+                    
+                    val wasYesterday = lastCal.get(Calendar.YEAR) == currentCal.get(Calendar.YEAR) &&
+                            lastCal.get(Calendar.DAY_OF_YEAR) == currentCal.get(Calendar.DAY_OF_YEAR)
+                    
+                    val isSameDay = lastCal.get(Calendar.YEAR) == Calendar.getInstance().get(Calendar.YEAR) &&
+                            lastCal.get(Calendar.DAY_OF_YEAR) == Calendar.getInstance().get(Calendar.DAY_OF_YEAR)
+
+                    when {
+                        isSameDay -> task.streak // Already completed today, maintain streak
+                        wasYesterday -> task.streak + 1 // Consecutive day, increment
+                        else -> 1 // Broken streak, reset to 1
+                    }
+                } else {
+                    1 // First completion, start at 1
+                }
+            } else if (newStatus == TaskStatus.TODO) {
+                0
+            } else {
+                task.streak
+            }
+
+            repository.update(
+                task.copy(
+                    status = newStatus,
+                    completedAt = newCompletedAt,
+                    streak = newStreak
+                )
+            )
+        }
     }
 
     fun deleteTask(task: TaskItem) {

@@ -1,5 +1,7 @@
 package com.example.niyam.ui.bhajan
 
+import android.media.MediaPlayer
+import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -9,73 +11,77 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.example.niyam.data.local.Bhajan
 import com.example.niyam.data.local.BhajanProvider
 import com.example.niyam.ui.theme.SaffronPrimary
-import com.example.niyam.ui.theme.SaffronLight
+import com.example.niyam.ui.theme.SaffronSecondary
+import com.example.niyam.ui.theme.SaffronTertiary
 import kotlinx.coroutines.delay
-
-import android.media.MediaPlayer
-import androidx.compose.ui.platform.LocalContext
-import com.example.niyam.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BhajanScreen(onBackClick: () -> Unit) {
     var selectedBhajan by remember { mutableStateOf<Bhajan?>(null) }
     val context = LocalContext.current
-    val mediaPlayer = remember { MediaPlayer() }
-
+    var mediaPlayer by remember { mutableStateOf<MediaPlayer?>(null) }
     var isPlaying by remember { mutableStateOf(false) }
 
-    DisposableEffect(Unit) {
-        onDispose {
-            mediaPlayer.release()
-        }
-    }
-
-    fun isMediaPlayerSafe(): Boolean {
-        return try {
-            mediaPlayer.isPlaying
-            true
-        } catch (e: IllegalStateException) {
-            false
-        }
-    }
-
+    // Safe initialization and lifecycle management of MediaPlayer linked to selectedBhajan
     LaunchedEffect(selectedBhajan) {
-        try {
-            if (selectedBhajan?.audioResId != null) {
-                mediaPlayer.reset()
+        if (selectedBhajan?.audioResId != null) {
+            try {
+                val mp = MediaPlayer()
                 val afd = context.resources.openRawResourceFd(selectedBhajan!!.audioResId!!)
-                mediaPlayer.setDataSource(afd.fileDescriptor, afd.startOffset, afd.length)
+                mp.setDataSource(afd.fileDescriptor, afd.startOffset, afd.length)
                 afd.close()
-                mediaPlayer.setOnPreparedListener {
+                mp.setOnPreparedListener {
                     isPlaying = false
                 }
-                mediaPlayer.setOnCompletionListener {
+                mp.setOnCompletionListener {
                     isPlaying = false
+                    try {
+                        mp.seekTo(0)
+                    } catch (e: Exception) {}
                 }
-                mediaPlayer.prepare()
-            } else {
-                if (isMediaPlayerSafe() && mediaPlayer.isPlaying) {
-                    mediaPlayer.stop()
-                }
-                mediaPlayer.reset()
+                mp.prepare()
+                mediaPlayer = mp
+            } catch (e: Exception) {
+                e.printStackTrace()
+                mediaPlayer = null
                 isPlaying = false
             }
-        } catch (e: Exception) {
-            e.printStackTrace()
+        } else {
+            mediaPlayer = null
+            isPlaying = false
+        }
+    }
+
+    // Safe release of MediaPlayer when selectedBhajan changes or screen is disposed
+    DisposableEffect(selectedBhajan) {
+        onDispose {
+            mediaPlayer?.let { mp ->
+                try {
+                    if (mp.isPlaying) {
+                        mp.stop()
+                    }
+                } catch (e: Exception) {}
+                try {
+                    mp.release()
+                } catch (e: Exception) {}
+            }
+            mediaPlayer = null
             isPlaying = false
         }
     }
@@ -83,32 +89,65 @@ fun BhajanScreen(onBackClick: () -> Unit) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(selectedBhajan?.title ?: "Bhajans", fontWeight = FontWeight.Bold) },
+                title = {
+                    Text(
+                        text = selectedBhajan?.title ?: "Bhajans & Mantras",
+                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.titleLarge
+                    )
+                },
                 navigationIcon = {
                     IconButton(onClick = {
                         if (selectedBhajan != null) {
-                            if (isMediaPlayerSafe() && mediaPlayer.isPlaying) {
-                                mediaPlayer.stop()
-                            }
-                            mediaPlayer.reset()
                             selectedBhajan = null
+                        } else {
+                            onBackClick()
                         }
-                        else onBackClick()
                     }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(
+                            imageVector = Icons.Default.ArrowBack,
+                            contentDescription = "Back",
+                            tint = MaterialTheme.colorScheme.primary
+                        )
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background,
+                    titleContentColor = MaterialTheme.colorScheme.primary
+                )
             )
         },
         bottomBar = {
-            if (selectedBhajan?.audioResId != null) {
-                BhajanAudioPlayer(mediaPlayer, isPlaying, onPlayingChange = { isPlaying = it })
+            AnimatedVisibility(
+                visible = selectedBhajan != null && mediaPlayer != null,
+                enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
+                exit = slideOutVertically(targetOffsetY = { it }) + fadeOut()
+            ) {
+                mediaPlayer?.let { mp ->
+                    BhajanAudioPlayer(
+                        mediaPlayer = mp,
+                        isPlaying = isPlaying,
+                        onPlayingChange = { isPlaying = it }
+                    )
+                }
             }
         }
     ) { padding ->
-        Box(modifier = Modifier.padding(padding).fillMaxSize()) {
+        Box(
+            modifier = Modifier
+                .padding(padding)
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            MaterialTheme.colorScheme.background,
+                            MaterialTheme.colorScheme.background.copy(alpha = 0.95f)
+                        )
+                    )
+                )
+        ) {
             if (selectedBhajan == null) {
-                BhajanList(onBhajanClick = { selectedBhajan = it })
+                BhajanCategoriesList(onBhajanClick = { selectedBhajan = it })
             } else {
                 selectedBhajan?.let { bhajan ->
                     BhajanDetail(bhajan = bhajan)
@@ -119,37 +158,95 @@ fun BhajanScreen(onBackClick: () -> Unit) {
 }
 
 @Composable
-fun BhajanList(onBhajanClick: (Bhajan) -> Unit) {
+fun BhajanCategoriesList(onBhajanClick: (Bhajan) -> Unit) {
+    // Grouping bhajans by category in UI
+    val categories = remember {
+        listOf(
+            "Hanuman Bhakti" to BhajanProvider.bhajans.filter { it.id.contains("hanuman") },
+            "Shri Ram Bhakti" to BhajanProvider.bhajans.filter { it.id.contains("ram") },
+            "Shiva Stutis" to BhajanProvider.bhajans.filter { it.id.contains("shiva") || it.id.contains("gauram") || it.id.contains("tandav") },
+            "Sacred Mantras" to BhajanProvider.bhajans.filter { it.id.contains("mantra") || it.id.contains("mrityunjaya") }
+        )
+    }
+
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        verticalArrangement = Arrangement.spacedBy(20.dp)
     ) {
-        items(BhajanProvider.bhajans) { bhajan ->
-            Card(
-                modifier = Modifier.fillMaxWidth().clickable { onBhajanClick(bhajan) },
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-            ) {
-                Row(
-                    modifier = Modifier.padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Surface(
-                        shape = CircleShape,
+        categories.forEach { (categoryName, bhajanList) ->
+            if (bhajanList.isNotEmpty()) {
+                item {
+                    Text(
+                        text = categoryName,
+                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.titleMedium,
                         color = SaffronPrimary,
-                        modifier = Modifier.size(40.dp)
+                        modifier = Modifier.padding(start = 4.dp, bottom = 8.dp)
+                    )
+                }
+                items(bhajanList) { bhajan ->
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onBhajanClick(bhajan) },
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.MusicNote,
-                            contentDescription = null,
-                            tint = Color.White,
-                            modifier = Modifier.padding(8.dp)
-                        )
-                    }
-                    Spacer(modifier = Modifier.width(16.dp))
-                    Column {
-                        Text(bhajan.title, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
-                        Text(bhajan.subtitle, style = MaterialTheme.typography.bodySmall, color = SaffronPrimary)
+                        Row(
+                            modifier = Modifier.padding(16.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            val categoryIcon = when {
+                                bhajan.id.contains("hanuman") -> Icons.Default.Favorite // Gada/Heart
+                                bhajan.id.contains("ram") -> Icons.Default.Star // Star/Bow
+                                bhajan.id.contains("shiva") || bhajan.id.contains("gauram") || bhajan.id.contains("tandav") -> Icons.Default.Spa // Spa/Lotus/Trident
+                                else -> Icons.Default.WbSunny // Sun/OM
+                            }
+                            
+                            Box(
+                                modifier = Modifier
+                                    .size(44.dp)
+                                    .background(
+                                        brush = Brush.linearGradient(
+                                            colors = listOf(SaffronPrimary, SaffronSecondary)
+                                        ),
+                                        shape = CircleShape
+                                    ),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = categoryIcon,
+                                    contentDescription = null,
+                                    tint = Color.Black,
+                                    modifier = Modifier.size(22.dp)
+                                )
+                            }
+                            
+                            Spacer(modifier = Modifier.width(16.dp))
+                            
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = bhajan.title,
+                                    fontWeight = FontWeight.Bold,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = SaffronTertiary
+                                )
+                                Text(
+                                    text = bhajan.subtitle,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            
+                            Icon(
+                                imageVector = Icons.Default.PlayArrow,
+                                contentDescription = "Play",
+                                tint = SaffronPrimary,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
                     }
                 }
             }
@@ -161,32 +258,51 @@ fun BhajanList(onBhajanClick: (Bhajan) -> Unit) {
 fun BhajanDetail(bhajan: Bhajan) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(start = 24.dp, end = 24.dp, top = 24.dp, bottom = 100.dp)
+        contentPadding = PaddingValues(start = 20.dp, end = 20.dp, top = 20.dp, bottom = 120.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         item {
-            Text(
-                text = bhajan.title,
-                fontSize = 28.sp,
-                fontWeight = FontWeight.ExtraBold,
-                color = SaffronPrimary,
-                modifier = Modifier.fillMaxWidth(),
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center
-            )
-            Text(
-                text = bhajan.subtitle,
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.fillMaxWidth().padding(bottom = 32.dp),
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center
-            )
-            
-            Text(
-                text = bhajan.content,
-                style = MaterialTheme.typography.bodyLarge.copy(
-                    lineHeight = 32.sp,
-                    letterSpacing = 0.5.sp
-                ),
+            Card(
+                shape = RoundedCornerShape(20.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
                 modifier = Modifier.fillMaxWidth()
-            )
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = bhajan.title,
+                        fontSize = 26.sp,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = SaffronPrimary,
+                        textAlign = TextAlign.Center
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = bhajan.subtitle,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.Center
+                    )
+                    
+                    Spacer(modifier = Modifier.height(24.dp))
+                    
+                    Text(
+                        text = bhajan.content,
+                        style = MaterialTheme.typography.bodyLarge.copy(
+                            lineHeight = 30.sp,
+                            letterSpacing = 0.5.sp
+                        ),
+                        color = MaterialTheme.colorScheme.onSurface,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            }
         }
     }
 }
@@ -201,18 +317,11 @@ fun BhajanAudioPlayer(
     var currentTime by remember { mutableStateOf("00:00") }
     var totalTime by remember { mutableStateOf("00:00") }
 
+    // Periodic progress check safely
     LaunchedEffect(mediaPlayer) {
         while (true) {
             try {
-                // Only check if it's safe to call isPlaying
-                val safeToQuery = try {
-                    mediaPlayer.isPlaying
-                    true
-                } catch (e: Exception) {
-                    false
-                }
-
-                if (safeToQuery && mediaPlayer.isPlaying) {
+                if (mediaPlayer.isPlaying) {
                     onPlayingChange(true)
                     val duration = mediaPlayer.duration
                     if (duration > 0) {
@@ -246,19 +355,19 @@ fun BhajanAudioPlayer(
             // Seek Bar
             Slider(
                 value = progress,
-                onValueChange = { 
-                    progress = it
+                onValueChange = { newValue ->
+                    progress = newValue
                     try {
                         val duration = mediaPlayer.duration
                         if (duration > 0) {
-                            mediaPlayer.seekTo((it * duration).toInt())
+                            mediaPlayer.seekTo((newValue * duration).toInt())
                         }
                     } catch (e: Exception) {}
                 },
                 colors = SliderDefaults.colors(
                     thumbColor = SaffronPrimary,
                     activeTrackColor = SaffronPrimary,
-                    inactiveTrackColor = SaffronLight
+                    inactiveTrackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)
                 ),
                 modifier = Modifier.height(20.dp)
             )
@@ -267,8 +376,8 @@ fun BhajanAudioPlayer(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text(currentTime, style = MaterialTheme.typography.labelSmall)
-                Text(totalTime, style = MaterialTheme.typography.labelSmall)
+                Text(currentTime, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(totalTime, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
 
             Spacer(modifier = Modifier.height(8.dp))
@@ -286,8 +395,8 @@ fun BhajanAudioPlayer(
                     } catch (e: Exception) {}
                 }) {
                     Icon(
-                        imageVector = Icons.Default.Replay,
-                        contentDescription = "Rewind",
+                        imageVector = Icons.Default.Replay10,
+                        contentDescription = "Rewind 10s",
                         tint = SaffronPrimary,
                         modifier = Modifier.size(32.dp)
                     )
@@ -310,7 +419,10 @@ fun BhajanAudioPlayer(
                         }
                     },
                     modifier = Modifier.size(56.dp),
-                    colors = IconButtonDefaults.filledIconButtonColors(containerColor = SaffronPrimary)
+                    colors = IconButtonDefaults.filledIconButtonColors(
+                        containerColor = SaffronPrimary,
+                        contentColor = Color.Black
+                    )
                 ) {
                     Icon(
                         imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
@@ -329,8 +441,8 @@ fun BhajanAudioPlayer(
                     } catch (e: Exception) {}
                 }) {
                     Icon(
-                        imageVector = Icons.Default.Refresh,
-                        contentDescription = "Forward",
+                        imageVector = Icons.Default.Forward10,
+                        contentDescription = "Forward 10s",
                         tint = SaffronPrimary,
                         modifier = Modifier.size(32.dp)
                     )

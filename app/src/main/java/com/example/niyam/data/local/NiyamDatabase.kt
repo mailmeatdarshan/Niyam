@@ -4,7 +4,7 @@ import androidx.room.Database
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 
-@Database(entities = [RoutineItem::class, TaskItem::class], version = 2, exportSchema = false)
+@Database(entities = [RoutineItem::class, TaskItem::class], version = 3, exportSchema = false)
 @TypeConverters(TaskConverters::class)
 abstract class NiyamDatabase : RoomDatabase() {
     abstract fun routineDao(): RoutineDao

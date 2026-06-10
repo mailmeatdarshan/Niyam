@@ -1,9 +1,12 @@
 package com.example.niyam.ui.gita
 
+import androidx.compose.animation.*
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Book
@@ -11,11 +14,19 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.niyam.data.remote.Chapter
+import com.example.niyam.data.local.Chapter
+import com.example.niyam.data.local.Verse
 import com.example.niyam.ui.theme.SaffronPrimary
+import com.example.niyam.ui.theme.SaffronSecondary
+import com.example.niyam.ui.theme.SaffronTertiary
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -31,7 +42,13 @@ fun GitaScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(selectedChapter?.name ?: "Bhagavad Gita", fontWeight = FontWeight.Bold) },
+                title = { 
+                    Text(
+                        text = selectedChapter?.transliteration ?: "Bhagavad Gita", 
+                        fontWeight = FontWeight.Bold,
+                        style = MaterialTheme.typography.titleLarge
+                    ) 
+                },
                 navigationIcon = {
                     IconButton(onClick = {
                         if (selectedChapter != null) {
@@ -41,35 +58,68 @@ fun GitaScreen(
                             onBackClick()
                         }
                     }) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(
+                            imageVector = Icons.Default.ArrowBack, 
+                            contentDescription = "Back",
+                            tint = MaterialTheme.colorScheme.primary
+                        )
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background,
+                    titleContentColor = MaterialTheme.colorScheme.primary
+                )
             )
         }
     ) { padding ->
-        Box(modifier = Modifier.padding(padding).fillMaxSize()) {
+        Box(
+            modifier = Modifier
+                .padding(padding)
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            MaterialTheme.colorScheme.background,
+                            MaterialTheme.colorScheme.background.copy(alpha = 0.95f)
+                        )
+                    )
+                )
+        ) {
             when (val state = uiState) {
                 is GitaUiState.Loading -> {
-                    CircularProgressIndicator(modifier = Modifier.align(Alignment.Center), color = SaffronPrimary)
+                    CircularProgressIndicator(
+                        modifier = Modifier.align(Alignment.Center), 
+                        color = MaterialTheme.colorScheme.primary
+                    )
                 }
                 is GitaUiState.Success -> {
-                    if (selectedChapter == null) {
-                        ChapterList(chapters = state.chapters) { chapter ->
-                            selectedChapter = chapter
+                    AnimatedContent(
+                        targetState = selectedChapter,
+                        transitionSpec = {
+                            fadeIn() togetherWith fadeOut()
+                        },
+                        label = "GitaContentTransition"
+                    ) { chapter ->
+                        if (chapter == null) {
+                            ChapterList(chapters = state.chapters) { ch ->
+                                selectedChapter = ch
+                            }
+                        } else {
+                            VerseView(
+                                chapter = chapter,
+                                verseState = verseState,
+                                onFetchVerse = { chNo, vsNo -> viewModel.fetchVerse(chNo, vsNo) }
+                            )
                         }
-                    } else {
-                        VerseView(
-                            chapter = selectedChapter!!,
-                            verseState = verseState,
-                            onFetchVerse = { ch, vs -> viewModel.fetchVerse(ch, vs) }
-                        )
                     }
                 }
                 is GitaUiState.Error -> {
                     Text(
                         text = state.message,
                         color = MaterialTheme.colorScheme.error,
-                        modifier = Modifier.align(Alignment.Center).padding(16.dp)
+                        modifier = Modifier
+                            .align(Alignment.Center)
+                            .padding(16.dp)
                     )
                 }
             }
@@ -82,32 +132,77 @@ fun ChapterList(chapters: List<Chapter>, onChapterClick: (Chapter) -> Unit) {
     LazyColumn(
         modifier = Modifier.fillMaxSize(),
         contentPadding = PaddingValues(16.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp)
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         items(chapters) { chapter ->
             Card(
-                modifier = Modifier.fillMaxWidth().clickable { onChapterClick(chapter) },
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { onChapterClick(chapter) },
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.surface
+                ),
+                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
             ) {
                 Row(
                     modifier = Modifier.padding(16.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Surface(
-                        shape = MaterialTheme.shapes.small,
-                        color = SaffronPrimary.copy(alpha = 0.1f)
+                    // Circle indicator with gradient background for Chapter Number
+                    Box(
+                        modifier = Modifier
+                            .size(50.dp)
+                            .background(
+                                brush = Brush.linearGradient(
+                                    colors = listOf(SaffronPrimary, SaffronSecondary)
+                                ),
+                                shape = RoundedCornerShape(25.dp)
+                            ),
+                        contentAlignment = Alignment.Center
                     ) {
                         Text(
                             text = chapter.chapterNumber.toString(),
-                            modifier = Modifier.padding(8.dp),
                             fontWeight = FontWeight.Bold,
-                            color = SaffronPrimary
+                            color = Color.Black,
+                            style = MaterialTheme.typography.titleMedium
                         )
                     }
+                    
                     Spacer(modifier = Modifier.width(16.dp))
-                    Column {
-                        Text(chapter.name ?: "Unknown Chapter", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
-                        Text(chapter.translation ?: "", style = MaterialTheme.typography.bodySmall)
+                    
+                    Column(modifier = Modifier.weight(1f)) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                text = chapter.name ?: "Unknown", 
+                                fontWeight = FontWeight.Bold, 
+                                style = MaterialTheme.typography.titleMedium,
+                                color = SaffronTertiary
+                            )
+                            Text(
+                                text = chapter.transliteration ?: "", 
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Text(
+                            text = chapter.translation ?: "", 
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = chapter.summaryHi ?: "",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
+                        )
                     }
                 }
             }
@@ -128,30 +223,54 @@ fun VerseView(
     }
 
     Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-        // Verse Selector
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+        // Verse Selector Header
+        Card(
+            shape = RoundedCornerShape(12.dp),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+            modifier = Modifier.fillMaxWidth()
         ) {
-            Button(
-                onClick = { if (verseNumber > 1) verseNumber-- },
-                enabled = verseNumber > 1,
-                colors = ButtonDefaults.buttonColors(containerColor = SaffronPrimary)
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(8.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("Prev")
-            }
-            Text("Verse $verseNumber / ${chapter.versesCount}", fontWeight = FontWeight.Bold)
-            Button(
-                onClick = { if (verseNumber < chapter.versesCount) verseNumber++ },
-                enabled = verseNumber < chapter.versesCount,
-                colors = ButtonDefaults.buttonColors(containerColor = SaffronPrimary)
-            ) {
-                Text("Next")
+                Button(
+                    onClick = { if (verseNumber > 1) verseNumber-- },
+                    enabled = verseNumber > 1,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = SaffronPrimary,
+                        contentColor = Color.Black
+                    ),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text("Prev", fontWeight = FontWeight.Bold)
+                }
+                
+                Text(
+                    text = "Verse $verseNumber / ${chapter.versesCount}", 
+                    fontWeight = FontWeight.Bold,
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
+                
+                Button(
+                    onClick = { if (verseNumber < chapter.versesCount) verseNumber++ },
+                    enabled = verseNumber < chapter.versesCount,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = SaffronPrimary,
+                        contentColor = Color.Black
+                    ),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text("Next", fontWeight = FontWeight.Bold)
+                }
             }
         }
 
-        Spacer(modifier = Modifier.height(24.dp))
+        Spacer(modifier = Modifier.height(16.dp))
 
         when (val state = verseState) {
             is VerseUiState.Loading -> {
@@ -160,46 +279,173 @@ fun VerseView(
                 }
             }
             is VerseUiState.Success -> {
-                LazyColumn(modifier = Modifier.fillMaxSize()) {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                    contentPadding = PaddingValues(bottom = 32.dp)
+                ) {
+                    // 1. Sanskrit Sloka Card
                     item {
-                        Text(
-                            text = state.verse.slok ?: "",
-                            fontSize = 20.sp,
-                            fontWeight = FontWeight.Bold,
-                            color = SaffronPrimary,
-                            lineHeight = 32.sp,
-                            modifier = Modifier.fillMaxWidth(),
-                            textAlign = androidx.compose.ui.text.style.TextAlign.Center
-                        )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Text(
-                            text = state.verse.transliteration ?: "",
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontStyle = androidx.compose.ui.text.font.FontStyle.Italic,
-                            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                        Card(
+                            shape = RoundedCornerShape(16.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
                             modifier = Modifier.fillMaxWidth()
-                        )
-                        Spacer(modifier = Modifier.height(24.dp))
-                        
-                        if (!state.verse.translations.isNullOrEmpty()) {
-                            Text("Translations", fontWeight = FontWeight.Bold, color = SaffronPrimary, style = MaterialTheme.typography.titleMedium)
-                            state.verse.translations?.forEach { trans ->
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Text(trans.authorName ?: "Unknown", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.bodySmall)
-                                Text(trans.description ?: "", style = MaterialTheme.typography.bodyMedium)
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(20.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Text(
+                                    text = "॥ श्लोक ॥",
+                                    fontWeight = FontWeight.Bold,
+                                    color = SaffronPrimary,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    modifier = Modifier.padding(bottom = 12.dp)
+                                )
+                                Text(
+                                    text = state.verse.slok ?: "",
+                                    fontSize = 20.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = SaffronTertiary,
+                                    lineHeight = 32.sp,
+                                    textAlign = TextAlign.Center,
+                                    modifier = Modifier.fillMaxWidth()
+                                )
                             }
                         }
+                    }
 
-                        if (!state.verse.wordMeanings.isNullOrBlank()) {
-                            Spacer(modifier = Modifier.height(24.dp))
-                            Text("Word Meanings", fontWeight = FontWeight.Bold, color = SaffronPrimary, style = MaterialTheme.typography.titleMedium)
-                            Text(state.verse.wordMeanings ?: "", style = MaterialTheme.typography.bodyMedium)
+                    // 2. Transliteration Card
+                    item {
+                        Card(
+                            shape = RoundedCornerShape(16.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Text(
+                                    text = "Transliteration",
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    style = MaterialTheme.typography.titleSmall,
+                                    modifier = Modifier.padding(bottom = 8.dp)
+                                )
+                                Text(
+                                    text = state.verse.transliteration ?: "",
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontStyle = FontStyle.Italic,
+                                    textAlign = TextAlign.Center,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    modifier = Modifier.fillMaxWidth()
+                                )
+                            }
+                        }
+                    }
+
+                    // 3. Word Meanings Card
+                    if (!state.verse.wordMeanings.isNullOrBlank()) {
+                        item {
+                            Card(
+                                shape = RoundedCornerShape(16.dp),
+                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Column(modifier = Modifier.padding(16.dp)) {
+                                    Text(
+                                        text = "Word Meanings",
+                                        fontWeight = FontWeight.Bold,
+                                        color = SaffronPrimary,
+                                        style = MaterialTheme.typography.titleSmall,
+                                        modifier = Modifier.padding(bottom = 8.dp)
+                                    )
+                                    Text(
+                                        text = state.verse.wordMeanings ?: "",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        lineHeight = 22.sp
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    // 4. Translations Card
+                    if (!state.verse.translations.isNullOrEmpty()) {
+                        item {
+                            Card(
+                                shape = RoundedCornerShape(16.dp),
+                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+                                elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Column(modifier = Modifier.padding(16.dp)) {
+                                    Text(
+                                        text = "Translations",
+                                        fontWeight = FontWeight.Bold,
+                                        color = SaffronPrimary,
+                                        style = MaterialTheme.typography.titleMedium,
+                                        modifier = Modifier.padding(bottom = 12.dp)
+                                    )
+                                    
+                                    state.verse.translations.forEachIndexed { index, trans ->
+                                        if (index > 0) {
+                                            HorizontalDivider(
+                                                modifier = Modifier.padding(vertical = 12.dp),
+                                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.1f)
+                                            )
+                                        }
+                                        Column {
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.SpaceBetween,
+                                                modifier = Modifier.fillMaxWidth()
+                                            ) {
+                                                Text(
+                                                    text = trans.authorName ?: "Swami Adgadanand",
+                                                    fontWeight = FontWeight.Bold,
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    color = SaffronSecondary
+                                                )
+                                                Text(
+                                                    text = if (trans.language?.lowercase() == "hindi") "HINDI" else "ENGLISH",
+                                                    fontWeight = FontWeight.ExtraBold,
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
+                                                )
+                                            }
+                                            Spacer(modifier = Modifier.height(4.dp))
+                                            Text(
+                                                text = trans.description ?: "",
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                color = MaterialTheme.colorScheme.onSurface,
+                                                lineHeight = 24.sp
+                                            )
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                 }
             }
             is VerseUiState.Error -> {
-                Text(state.message, color = MaterialTheme.colorScheme.error)
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Text(
+                        text = state.message, 
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
             }
             else -> {}
         }

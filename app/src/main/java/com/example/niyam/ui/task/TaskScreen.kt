@@ -12,12 +12,13 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.Delete
-import androidx.compose.material.icons.outlined.Flag
+import androidx.compose.material.icons.outlined.Repeat
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
@@ -27,8 +28,8 @@ import com.example.niyam.data.local.TaskItem
 import com.example.niyam.data.local.TaskPriority
 import com.example.niyam.data.local.TaskStatus
 import com.example.niyam.ui.theme.SaffronPrimary
-import com.example.niyam.ui.theme.SaffronLight
-import kotlinx.coroutines.*
+import com.example.niyam.ui.theme.SaffronSecondary
+import com.example.niyam.ui.theme.SaffronTertiary
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -40,53 +41,124 @@ fun TaskScreen(
 ) {
     val tasks by viewModel.allTasks.collectAsState()
     var showAddSheet by remember { mutableStateOf(false) }
-    val scope = rememberCoroutineScope()
-    val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    var selectedCategory by remember { mutableStateOf("All") }
+    
+    val categories = remember { listOf("All", "Spiritual", "Health", "Study", "Personal", "General") }
+
+    // Filter tasks based on category tab selection
+    val filteredTasks = remember(tasks, selectedCategory) {
+        if (selectedCategory == "All") {
+            tasks
+        } else {
+            tasks.filter { it.category.equals(selectedCategory, ignoreCase = true) }
+        }
+    }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Tasks", fontWeight = FontWeight.Bold) },
+                title = { Text("Task & Habit Tracker", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Back")
+                        Icon(
+                            imageVector = Icons.Default.ArrowBack, 
+                            contentDescription = "Back",
+                            tint = MaterialTheme.colorScheme.primary
+                        )
                     }
                 },
-                actions = {
-                    IconButton(onClick = { /* Sort or Filter */ }) {
-                        Icon(Icons.Default.FilterList, contentDescription = "Filter")
-                    }
-                }
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background,
+                    titleContentColor = MaterialTheme.colorScheme.primary
+                )
             )
         },
         floatingActionButton = {
             FloatingActionButton(
                 onClick = { showAddSheet = true },
                 containerColor = SaffronPrimary,
-                contentColor = Color.White,
+                contentColor = Color.Black,
                 shape = CircleShape
             ) {
                 Icon(Icons.Default.Add, contentDescription = "Add Task")
             }
         }
     ) { padding ->
-        if (tasks.isEmpty()) {
-            EmptyTasksView(Modifier.padding(padding))
-        } else {
-            LazyColumn(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding)
-                    .padding(horizontal = 16.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-                contentPadding = PaddingValues(bottom = 80.dp, top = 16.dp)
-            ) {
-                items(tasks, key = { it.id }) { task ->
-                    TaskItemCard(
-                        task = task,
-                        onToggle = { viewModel.toggleTaskCompletion(task) },
-                        onDelete = { viewModel.deleteTask(task) }
+        Column(
+            modifier = Modifier
+                .padding(padding)
+                .fillMaxSize()
+                .background(
+                    Brush.verticalGradient(
+                        colors = listOf(
+                            MaterialTheme.colorScheme.background,
+                            MaterialTheme.colorScheme.background.copy(alpha = 0.95f)
+                        )
                     )
+                )
+        ) {
+            // Heatmap consistency chart at the top
+            TaskHeatmap(tasks = tasks)
+
+            // Category Tab Row
+            ScrollableTabRow(
+                selectedTabIndex = categories.indexOf(selectedCategory),
+                edgePadding = 16.dp,
+                containerColor = Color.Transparent,
+                divider = {},
+                indicator = { tabPositions ->
+                    if (categories.indexOf(selectedCategory) in tabPositions.indices) {
+                        TabRowDefaults.SecondaryIndicator(
+                            modifier = Modifier.tabIndicatorOffset(tabPositions[categories.indexOf(selectedCategory)]),
+                            color = SaffronPrimary
+                        )
+                    }
+                },
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                categories.forEach { cat ->
+                    Tab(
+                        selected = selectedCategory == cat,
+                        onClick = { selectedCategory = cat },
+                        text = {
+                            Text(
+                                text = cat,
+                                fontWeight = if (selectedCategory == cat) FontWeight.Bold else FontWeight.Normal,
+                                color = if (selectedCategory == cat) SaffronPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Task List
+            if (filteredTasks.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    EmptyTasksView()
+                }
+            } else {
+                LazyColumn(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    contentPadding = PaddingValues(bottom = 80.dp, top = 8.dp)
+                ) {
+                    items(filteredTasks, key = { it.id }) { task ->
+                        TaskItemCard(
+                            task = task,
+                            onToggle = { viewModel.toggleTaskCompletion(task) },
+                            onDelete = { viewModel.deleteTask(task) }
+                        )
+                    }
                 }
             }
         }
@@ -95,15 +167,131 @@ fun TaskScreen(
     if (showAddSheet) {
         AddTaskBottomSheet(
             onDismiss = { showAddSheet = false },
-            onAddTask = { title, desc, priority ->
-                viewModel.addTask(title, desc, priority)
-                scope.launch {
-                    sheetState.hide()
-                    showAddSheet = false
-                }
-            },
-            sheetState = sheetState
+            onAddTask = { title, desc, priority, category, isRecurring ->
+                viewModel.addTask(
+                    title = title,
+                    description = desc,
+                    priority = priority,
+                    category = category,
+                    isRecurring = isRecurring
+                )
+                showAddSheet = false
+            }
         )
+    }
+}
+
+@Composable
+fun TaskHeatmap(tasks: List<TaskItem>) {
+    val sdf = remember { SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()) }
+    
+    // Calculate completions per day
+    val completionCounts = remember(tasks) {
+        val counts = mutableMapOf<String, Int>()
+        tasks.forEach { task ->
+            if (task.status == TaskStatus.DONE && task.completedAt != null) {
+                val dateStr = sdf.format(Date(task.completedAt))
+                counts[dateStr] = (counts[dateStr] ?: 0) + 1
+            }
+        }
+        counts
+    }
+
+    // Generate dates for the last 12 weeks, aligned to start on Sunday
+    val weeks = remember {
+        val list = mutableListOf<List<String>>()
+        val cal = Calendar.getInstance()
+        
+        // Go back 11 weeks and set to Sunday
+        cal.add(Calendar.WEEK_OF_YEAR, -11)
+        cal.set(Calendar.DAY_OF_WEEK, Calendar.SUNDAY)
+        
+        for (w in 0 until 12) {
+            val weekDays = mutableListOf<String>()
+            for (d in 0 until 7) {
+                weekDays.add(sdf.format(cal.time))
+                cal.add(Calendar.DAY_OF_YEAR, 1)
+            }
+            list.add(weekDays)
+        }
+        list
+    }
+
+    Card(
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(16.dp)
+    ) {
+        Column(modifier = Modifier.padding(14.dp)) {
+            Text(
+                text = "Consistency Heatmap",
+                fontWeight = FontWeight.Bold,
+                style = MaterialTheme.typography.titleSmall,
+                color = SaffronPrimary,
+                modifier = Modifier.padding(bottom = 12.dp)
+            )
+
+            // Grid Row containing columns of weeks
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                weeks.forEach { week ->
+                    Column(
+                        verticalArrangement = Arrangement.spacedBy(4.dp)
+                    ) {
+                        week.forEach { dateStr ->
+                            val count = completionCounts[dateStr] ?: 0
+                            val color = when {
+                                count == 0 -> Color(0xFF262626) // Empty
+                                count == 1 -> Color(0xFF5D2E14) // Saffron Level 1
+                                count == 2 -> Color(0xFF8C4318) // Saffron Level 2
+                                count == 3 -> Color(0xFFC05C1D) // Saffron Level 3
+                                count == 4 -> Color(0xFFE67329) // Saffron Level 4
+                                else -> Color(0xFFFF944D)       // Saffron Level 5 (Highest)
+                            }
+
+                            Box(
+                                modifier = Modifier
+                                    .size(13.dp)
+                                    .clip(RoundedCornerShape(3.dp))
+                                    .background(color)
+                            )
+                        }
+                    }
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(10.dp))
+            
+            // Legend
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text("Less ", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                listOf(
+                    Color(0xFF262626),
+                    Color(0xFF5D2E14),
+                    Color(0xFF8C4318),
+                    Color(0xFFC05C1D),
+                    Color(0xFFE67329),
+                    Color(0xFFFF944D)
+                ).forEach { color ->
+                    Box(
+                        modifier = Modifier
+                            .padding(horizontal = 2.dp)
+                            .size(10.dp)
+                            .clip(RoundedCornerShape(2.dp))
+                            .background(color)
+                    )
+                }
+                Text(" More", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
     }
 }
 
@@ -118,7 +306,7 @@ fun TaskItemCard(
     Surface(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
-        color = if (isDone) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f) else MaterialTheme.colorScheme.surface,
+        color = if (isDone) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f) else MaterialTheme.colorScheme.surface,
         tonalElevation = if (isDone) 0.dp else 2.dp,
         onClick = onToggle
     ) {
@@ -130,7 +318,7 @@ fun TaskItemCard(
         ) {
             Box(
                 modifier = Modifier
-                    .size(24.dp)
+                    .size(26.dp)
                     .clip(CircleShape)
                     .background(if (isDone) SaffronPrimary else Color.Transparent)
                     .border(2.dp, SaffronPrimary, CircleShape)
@@ -141,7 +329,7 @@ fun TaskItemCard(
                     Icon(
                         Icons.Default.Check,
                         contentDescription = null,
-                        tint = Color.White,
+                        tint = Color.Black,
                         modifier = Modifier.size(16.dp)
                     )
                 }
@@ -150,28 +338,85 @@ fun TaskItemCard(
             Spacer(modifier = Modifier.width(16.dp))
 
             Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = task.title,
-                    style = MaterialTheme.typography.bodyLarge.copy(
-                        fontWeight = FontWeight.SemiBold,
-                        textDecoration = if (isDone) TextDecoration.LineThrough else null
-                    ),
-                    color = if (isDone) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f) else MaterialTheme.colorScheme.onSurface
-                )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        text = task.title,
+                        style = MaterialTheme.typography.bodyLarge.copy(
+                            fontWeight = FontWeight.SemiBold,
+                            textDecoration = if (isDone) TextDecoration.LineThrough else null
+                        ),
+                        color = if (isDone) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f) else MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.weight(1f, fill = false)
+                    )
+                    
+                    if (task.isRecurring) {
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Icon(
+                            imageVector = Icons.Outlined.Repeat,
+                            contentDescription = "Daily Habit",
+                            tint = SaffronPrimary,
+                            modifier = Modifier.size(14.dp)
+                        )
+                    }
+
+                    if (task.streak > 0) {
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Surface(
+                            color = SaffronPrimary.copy(alpha = 0.15f),
+                            shape = RoundedCornerShape(10.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Whatshot,
+                                    contentDescription = "Streak",
+                                    tint = SaffronSecondary,
+                                    modifier = Modifier.size(12.dp)
+                                )
+                                Spacer(modifier = Modifier.width(2.dp))
+                                Text(
+                                    text = "${task.streak}d",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    fontWeight = FontWeight.Bold,
+                                    color = SaffronPrimary
+                                )
+                            }
+                        }
+                    }
+                }
+                
                 if (task.description.isNotBlank()) {
                     Text(
                         text = task.description,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1
+                        maxLines = 1,
+                        modifier = Modifier.padding(top = 2.dp)
                     )
                 }
                 
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(top = 4.dp)
+                    modifier = Modifier.padding(top = 6.dp)
                 ) {
                     PriorityBadge(task.priority)
+                    
+                    Spacer(modifier = Modifier.width(8.dp))
+                    
+                    Surface(
+                        color = MaterialTheme.colorScheme.background,
+                        shape = RoundedCornerShape(4.dp)
+                    ) {
+                        Text(
+                            text = task.category,
+                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+
                     if (task.dueDate != null) {
                         Spacer(modifier = Modifier.width(8.dp))
                         Icon(
@@ -225,30 +470,28 @@ fun PriorityBadge(priority: TaskPriority) {
 }
 
 @Composable
-fun EmptyTasksView(modifier: Modifier = Modifier) {
-    Box(
-        modifier = modifier.fillMaxSize(),
-        contentAlignment = Alignment.Center
+fun EmptyTasksView() {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
     ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Icon(
-                Icons.Default.Assignment,
-                contentDescription = null,
-                modifier = Modifier.size(64.dp),
-                tint = MaterialTheme.colorScheme.surfaceVariant
-            )
-            Spacer(modifier = Modifier.height(16.dp))
-            Text(
-                "No tasks yet",
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Text(
-                "Tap + to add a new task",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-            )
-        }
+        Icon(
+            Icons.Default.Assignment,
+            contentDescription = null,
+            modifier = Modifier.size(64.dp),
+            tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+        Text(
+            "No tasks in this category",
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Text(
+            "Tap + to create a new task or habit",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+        )
     }
 }
 
@@ -256,16 +499,18 @@ fun EmptyTasksView(modifier: Modifier = Modifier) {
 @Composable
 fun AddTaskBottomSheet(
     onDismiss: () -> Unit,
-    onAddTask: (String, String, TaskPriority) -> Unit,
-    sheetState: SheetState
+    onAddTask: (String, String, TaskPriority, String, Boolean) -> Unit
 ) {
     var title by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
     var priority by remember { mutableStateOf(TaskPriority.MEDIUM) }
+    var category by remember { mutableStateOf("Spiritual") }
+    var isRecurring by remember { mutableStateOf(false) }
+
+    val categories = remember { listOf("Spiritual", "Health", "Study", "Personal", "General") }
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        sheetState = sheetState,
         dragHandle = { BottomSheetDefaults.DragHandle() },
         containerColor = MaterialTheme.colorScheme.surface
     ) {
@@ -276,10 +521,11 @@ fun AddTaskBottomSheet(
                 .navigationBarsPadding()
         ) {
             Text(
-                "New Task",
-                style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold)
+                "New Task / Habit",
+                style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
+                color = SaffronPrimary
             )
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(20.dp))
             
             OutlinedTextField(
                 value = title,
@@ -293,7 +539,7 @@ fun AddTaskBottomSheet(
                 )
             )
             
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(12.dp))
             
             OutlinedTextField(
                 value = description,
@@ -307,39 +553,105 @@ fun AddTaskBottomSheet(
                 )
             )
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Category Selection
+            Text("Category", style = MaterialTheme.typography.titleSmall, color = SaffronTertiary)
+            Spacer(modifier = Modifier.height(6.dp))
+            ScrollableTabRow(
+                selectedTabIndex = categories.indexOf(category),
+                edgePadding = 0.dp,
+                containerColor = Color.Transparent,
+                divider = {},
+                indicator = {},
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                categories.forEach { cat ->
+                    val selected = category == cat
+                    Tab(
+                        selected = selected,
+                        onClick = { category = cat },
+                        text = {
+                            Box(
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(16.dp))
+                                    .background(if (selected) SaffronPrimary else MaterialTheme.colorScheme.surfaceVariant)
+                                    .padding(horizontal = 12.dp, vertical = 6.dp)
+                            ) {
+                                Text(
+                                    text = cat,
+                                    fontWeight = FontWeight.Bold,
+                                    color = if (selected) Color.Black else MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+                        }
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Habit Toggle
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column {
+                    Text("Daily Habit", style = MaterialTheme.typography.titleSmall, color = SaffronTertiary)
+                    Text(
+                        "Repeat this task daily to build a streak",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                Switch(
+                    checked = isRecurring,
+                    onCheckedChange = { isRecurring = it },
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = Color.Black,
+                        checkedTrackColor = SaffronPrimary
+                    )
+                )
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
             
-            Text("Priority", style = MaterialTheme.typography.titleSmall)
-            Spacer(modifier = Modifier.height(8.dp))
+            Text("Priority", style = MaterialTheme.typography.titleSmall, color = SaffronTertiary)
+            Spacer(modifier = Modifier.height(6.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 TaskPriority.entries.forEach { p ->
-                    FilterChip(
-                        selected = priority == p,
-                        onClick = { priority = p },
-                        label = { Text(p.name) },
-                        modifier = Modifier.weight(1f),
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = SaffronPrimary.copy(alpha = 0.2f),
-                            selectedLabelColor = SaffronPrimary,
-                            selectedLeadingIconColor = SaffronPrimary
-                        )
-                    )
+                    val selected = priority == p
+                    val containerColor = if (selected) SaffronPrimary else MaterialTheme.colorScheme.surfaceVariant
+                    val textColor = if (selected) Color.Black else MaterialTheme.colorScheme.onSurface
+                    
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .clip(RoundedCornerShape(12.dp))
+                            .background(containerColor)
+                            .clickable { priority = p }
+                            .padding(vertical = 10.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(p.name, fontWeight = FontWeight.Bold, color = textColor)
+                    }
                 }
             }
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(24.dp))
             
             Button(
-                onClick = { if (title.isNotBlank()) onAddTask(title, description, priority) },
+                onClick = { if (title.isNotBlank()) onAddTask(title, description, priority, category, isRecurring) },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(12.dp),
-                colors = ButtonDefaults.buttonColors(containerColor = SaffronPrimary),
+                colors = ButtonDefaults.buttonColors(containerColor = SaffronPrimary, contentColor = Color.Black),
                 enabled = title.isNotBlank()
             ) {
-                Text("Create Task", modifier = Modifier.padding(8.dp))
+                Text("Create Task / Habit", fontWeight = FontWeight.Bold, modifier = Modifier.padding(8.dp))
             }
             
             Spacer(modifier = Modifier.height(16.dp))
