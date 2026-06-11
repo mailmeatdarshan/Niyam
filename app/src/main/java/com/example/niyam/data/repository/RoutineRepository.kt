@@ -30,6 +30,19 @@ class RoutineRepository @Inject constructor(
     suspend fun delete(item: RoutineItem) {
         routineDao.deleteItem(item)
     }
+
+    suspend fun deduplicateRoutines() {
+        val allItems = routineDao.getAllItemsOnce()
+        val seen = mutableSetOf<String>()
+        allItems.forEach { item ->
+            val key = "${item.title.trim().lowercase()}_${item.timeOfDay}"
+            if (seen.contains(key)) {
+                routineDao.deleteItem(item)
+            } else {
+                seen.add(key)
+            }
+        }
+    }
     
     suspend fun initializeDefaultTasks() {
         val defaults = listOf(

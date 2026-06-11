@@ -12,6 +12,8 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -71,15 +73,32 @@ fun FocusScreen(onBackClick: () -> Unit) {
     var isRunning by remember { mutableStateOf(false) }
     var showSessionCompleteDialog by remember { mutableStateOf(false) }
 
-    var playChant by remember { mutableStateOf(false) }
+    var selectedSoundId by remember { mutableStateOf<String?>(null) }
     var mediaPlayer by remember { mutableStateOf<MediaPlayer?>(null) }
 
-    // Manage MediaPlayer lifecycle for background focus ambient chant
-    LaunchedEffect(isRunning, playChant, isFocusMode) {
-        if (isRunning && playChant && isFocusMode) {
+    val focusSounds = remember {
+        listOf(
+            FocusSound("brown_noise", "Brown Noise", com.example.niyam.R.raw.brown_noise),
+            FocusSound("gentle_rain", "Gentle Rain", com.example.niyam.R.raw.gentle_rain),
+            FocusSound("ocean_waves", "Ocean Waves", com.example.niyam.R.raw.ocean_waves),
+            FocusSound("campfire", "Campfire", com.example.niyam.R.raw.campfire),
+            FocusSound("relaxing_piano", "Relaxing Piano", com.example.niyam.R.raw.relaxing_piano)
+        )
+    }
+
+    // Manage MediaPlayer lifecycle for ambient focus sounds
+    LaunchedEffect(isRunning, selectedSoundId, isFocusMode) {
+        val currentSound = focusSounds.find { it.id == selectedSoundId }
+        if (isRunning && currentSound != null && isFocusMode) {
             try {
-                val mp = MediaPlayer.create(context, com.example.niyam.R.raw.tera_mangal_mera_mangal)
-                mp.isLooping = true
+                // Clean up existing player first if any
+                mediaPlayer?.let { mp ->
+                    try { if (mp.isPlaying) mp.stop() } catch (e: Exception) {}
+                    try { mp.release() } catch (e: Exception) {}
+                }
+                
+                val mp = MediaPlayer.create(context, currentSound.audioResId)
+                mp.isLooping = true // loops audio if focus is longer than 30 mins
                 mp.start()
                 mediaPlayer = mp
             } catch (e: Exception) {
@@ -289,49 +308,78 @@ fun FocusScreen(onBackClick: () -> Unit) {
                 horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                // Ambient Chant Toggle
-                Row(
+                // Ambient Focus Sound Selector
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(bottom = 12.dp)
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(MaterialTheme.colorScheme.surface)
-                        .clickable { playChant = !playChant }
-                        .padding(horizontal = 16.dp, vertical = 10.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
+                        .padding(bottom = 20.dp),
+                    horizontalAlignment = Alignment.Start
                 ) {
+                    Text(
+                        text = "Focus Ambient Sound",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+                    
                     Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(
-                            imageVector = if (playChant) Icons.Default.VolumeUp else Icons.Default.VolumeOff,
-                            contentDescription = "Chant Audio",
-                            tint = if (playChant) SaffronPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(24.dp)
-                        )
-                        Column {
-                            Text(
-                                text = "Focus Ambient Chant",
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.SemiBold
-                            )
-                            Text(
-                                text = "Tera Mangal Mera Mangal",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+                        // None option
+                        val isNoneSelected = selectedSoundId == null
+                        Card(
+                            shape = RoundedCornerShape(12.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = if (isNoneSelected) SaffronPrimary else MaterialTheme.colorScheme.surface
+                            ),
+                            modifier = Modifier
+                                .clickable { selectedSoundId = null }
+                                .width(90.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Text(
+                                    text = "Silent",
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 12.sp,
+                                    color = if (isNoneSelected) Color.Black else MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                        }
+                        
+                        // Sound options
+                        focusSounds.forEach { sound ->
+                            val isSelected = selectedSoundId == sound.id
+                            Card(
+                                shape = RoundedCornerShape(12.dp),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = if (isSelected) SaffronPrimary else MaterialTheme.colorScheme.surface
+                                ),
+                                modifier = Modifier
+                                    .clickable { selectedSoundId = sound.id }
+                                    .width(115.dp)
+                            ) {
+                                Box(
+                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = sound.name,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 12.sp,
+                                        color = if (isSelected) Color.Black else MaterialTheme.colorScheme.onSurface
+                                    )
+                                }
+                            }
                         }
                     }
-                    Switch(
-                        checked = playChant,
-                        onCheckedChange = { playChant = it },
-                        colors = SwitchDefaults.colors(
-                            checkedThumbColor = Color.Black,
-                            checkedTrackColor = SaffronPrimary
-                        )
-                    )
                 }
 
                 // Today's completed Pomodoro sessions
@@ -453,3 +501,9 @@ fun FocusScreen(onBackClick: () -> Unit) {
         )
     }
 }
+
+data class FocusSound(
+    val id: String,
+    val name: String,
+    val audioResId: Int
+)

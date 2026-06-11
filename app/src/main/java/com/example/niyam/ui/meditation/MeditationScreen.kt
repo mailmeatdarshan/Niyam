@@ -87,7 +87,7 @@ fun MeditationScreen(onBackClick: () -> Unit) {
             if (meditationPlayer == null) {
                 try {
                     val mp = MediaPlayer()
-                    val afd = context.resources.openRawResourceFd(R.raw.hanuman_chalisa)
+                    val afd = context.resources.openRawResourceFd(R.raw.tera_mangal_mera_mangal)
                     mp.setDataSource(afd.fileDescriptor, afd.startOffset, afd.length)
                     afd.close()
                     mp.isLooping = true

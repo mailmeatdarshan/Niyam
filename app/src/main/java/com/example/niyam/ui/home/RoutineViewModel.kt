@@ -37,6 +37,9 @@ class RoutineViewModel @Inject constructor(
                 // Check and reset daily routines first
                 repository.resetDailyRoutinesIfNeeded(context)
                 
+                // Clean up any existing duplicates
+                repository.deduplicateRoutines()
+                
                 // Initialize default routines if database is empty
                 if (repository.getAllItemsOnce().isEmpty()) {
                     repository.initializeDefaultTasks()
