@@ -716,7 +716,7 @@ fun TimelineSection(
                     fontStyle = FontStyle.Italic,
                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
                 ),
-                modifier = Modifier.padding(start = 28.dp, vertical = 4.dp)
+                modifier = Modifier.padding(start = 28.dp, top = 4.dp, bottom = 4.dp)
             )
         } else {
             Column(

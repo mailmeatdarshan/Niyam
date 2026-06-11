@@ -180,9 +180,6 @@ fun TaskScreen(
 }
 
 @Composable
-
-
-@Composable
 fun TaskItemCard(
     task: TaskItem,
     onToggle: () -> Unit,
