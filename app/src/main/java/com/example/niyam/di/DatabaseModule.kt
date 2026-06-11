@@ -5,6 +5,7 @@ import androidx.room.Room
 import com.example.niyam.data.local.NiyamDatabase
 import com.example.niyam.data.local.RoutineDao
 import com.example.niyam.data.local.TaskDao
+import com.example.niyam.data.local.CompletionDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
