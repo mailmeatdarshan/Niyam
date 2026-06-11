@@ -38,7 +38,7 @@ class RoutineViewModel @Inject constructor(
                 repository.resetDailyRoutinesIfNeeded(context)
                 
                 // Initialize default routines if database is empty
-                if (repository.allItems.first().isEmpty()) {
+                if (repository.getAllItemsOnce().isEmpty()) {
                     repository.initializeDefaultTasks()
                 }
             } catch (e: Exception) {

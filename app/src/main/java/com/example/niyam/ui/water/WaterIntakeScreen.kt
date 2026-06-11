@@ -1,7 +1,12 @@
 package com.example.niyam.ui.water
 
 import android.content.Context
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -19,6 +24,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -249,6 +256,18 @@ fun WaterCupAnimation(fillRatio: Float, modifier: Modifier = Modifier) {
         label = "FluidHeight"
     )
 
+    // Infinite wave phase animation
+    val infiniteTransition = rememberInfiniteTransition(label = "WaveTransition")
+    val wavePhase by infiniteTransition.animateFloat(
+        initialValue = 0f,
+        targetValue = (2 * Math.PI).toFloat(),
+        animationSpec = infiniteRepeatable(
+            animation = tween(1800, easing = LinearEasing),
+            repeatMode = RepeatMode.Restart
+        ),
+        label = "WavePhase"
+    )
+
     Canvas(modifier = modifier) {
         val width = size.width
         val height = size.height
@@ -261,7 +280,20 @@ fun WaterCupAnimation(fillRatio: Float, modifier: Modifier = Modifier) {
         val glassLeftBottomX = 50f
         val glassRightBottomX = width - 50f
         
-        // 1. Draw Liquid Area first (clipped by glass inner boundaries)
+        // 0. Draw a very subtle backing shadow inside the glass for material presence
+        val glassInnerPath = Path().apply {
+            moveTo(glassLeftTopX, glassTopY)
+            lineTo(glassLeftBottomX, glassBottomY)
+            lineTo(glassRightBottomX, glassBottomY)
+            lineTo(glassRightTopX, glassTopY)
+            close()
+        }
+        drawPath(
+            path = glassInnerPath,
+            color = Color.White.copy(alpha = 0.03f)
+        )
+        
+        // 1. Draw Liquid Area (clipped by glass inner boundaries)
         if (animatedFillRatio > 0.01f) {
             val liquidBottomY = glassBottomY - 10f
             val liquidTopY = glassBottomY - (glassBottomY - glassTopY - 20f) * animatedFillRatio
@@ -270,15 +302,47 @@ fun WaterCupAnimation(fillRatio: Float, modifier: Modifier = Modifier) {
             val liquidLeftX = glassLeftBottomX - (glassLeftBottomX - glassLeftTopX) * animatedFillRatio
             val liquidRightX = glassRightBottomX + (glassRightTopX - glassRightBottomX) * animatedFillRatio
             
-            val path = Path().apply {
+            // Background wave (darker cyan, opposite phase)
+            val bgPath = Path().apply {
                 moveTo(liquidLeftX, liquidTopY)
-                lineTo(liquidRightX, liquidTopY)
+                val steps = 30
+                val stepWidth = (liquidRightX - liquidLeftX) / steps
+                val waveAmplitude = 4.dp.toPx()
+                val waveFrequency = (2 * Math.PI).toFloat() / (liquidRightX - liquidLeftX)
+                
+                for (i in 1..steps) {
+                    val x = liquidLeftX + i * stepWidth
+                    val y = liquidTopY + waveAmplitude * kotlin.math.sin(-wavePhase + x * waveFrequency)
+                    lineTo(x, y)
+                }
                 lineTo(glassRightBottomX - 10f, liquidBottomY)
                 lineTo(glassLeftBottomX + 10f, liquidBottomY)
                 close()
             }
             
-            // Neon-blue fluid gradient
+            drawPath(
+                path = bgPath,
+                color = Color(0xFF006064).copy(alpha = 0.35f)
+            )
+            
+            // Foreground wave (main neon-blue gradient)
+            val fgPath = Path().apply {
+                moveTo(liquidLeftX, liquidTopY)
+                val steps = 30
+                val stepWidth = (liquidRightX - liquidLeftX) / steps
+                val waveAmplitude = 5.dp.toPx()
+                val waveFrequency = (2 * Math.PI).toFloat() / (liquidRightX - liquidLeftX)
+                
+                for (i in 1..steps) {
+                    val x = liquidLeftX + i * stepWidth
+                    val y = liquidTopY + waveAmplitude * kotlin.math.sin(wavePhase + x * waveFrequency)
+                    lineTo(x, y)
+                }
+                lineTo(glassRightBottomX - 10f, liquidBottomY)
+                lineTo(glassLeftBottomX + 10f, liquidBottomY)
+                close()
+            }
+            
             val fluidGradient = Brush.verticalGradient(
                 colors = listOf(
                     Color(0xFF80DEEA), // Ice/light blue
@@ -290,24 +354,85 @@ fun WaterCupAnimation(fillRatio: Float, modifier: Modifier = Modifier) {
             )
             
             drawPath(
-                path = path,
+                path = fgPath,
                 brush = fluidGradient
             )
+            
+            // Draw floating bubble particles
+            val bubbleCount = 8
+            for (i in 0 until bubbleCount) {
+                val relativeX = 0.15f + (i * 0.11f) % 0.7f
+                val speed = 0.7f + (i * 0.25f) % 0.6f
+                val radius = 2.dp.toPx() + (i * 3f) % 8f
+                
+                val progress = ((wavePhase / (2 * Math.PI.toFloat())) * speed + (i * 0.15f)) % 1f
+                
+                val currentLiquidWidth = liquidRightX - liquidLeftX
+                val bubbleX = liquidLeftX + relativeX * currentLiquidWidth + kotlin.math.sin(wavePhase * 1.5f + i) * 6.dp.toPx()
+                val bubbleY = liquidBottomY - (liquidBottomY - liquidTopY) * progress
+                
+                if (bubbleY > liquidTopY + 4.dp.toPx() && bubbleY < liquidBottomY) {
+                    drawCircle(
+                        color = Color.White.copy(alpha = 0.25f),
+                        radius = radius,
+                        center = Offset(bubbleX, bubbleY)
+                    )
+                    drawCircle(
+                        color = Color.White.copy(alpha = 0.5f),
+                        radius = radius * 0.35f,
+                        center = Offset(bubbleX - radius * 0.3f, bubbleY - radius * 0.3f)
+                    )
+                }
+            }
         }
         
         // 2. Draw Glass Silhouette Outline
-        val glassOutlinePath = Path().apply {
-            moveTo(glassLeftTopX, glassTopY)
-            lineTo(glassLeftBottomX, glassBottomY)
-            lineTo(glassRightBottomX, glassBottomY)
-            lineTo(glassRightTopX, glassTopY)
-        }
-        
-        // Translucent glow color for glass outline
         drawPath(
-            path = glassOutlinePath,
-            color = Color.White.copy(alpha = 0.25f),
-            style = Stroke(width = 8.dp.toPx(), cap = StrokeCap.Round)
+            path = glassInnerPath,
+            color = Color.White.copy(alpha = 0.2f),
+            style = Stroke(width = 6.dp.toPx(), cap = StrokeCap.Round)
+        )
+        
+        // 3. Draw Thick Glass Bottom Base
+        drawPath(
+            path = Path().apply {
+                moveTo(glassLeftBottomX, glassBottomY)
+                lineTo(glassRightBottomX, glassBottomY)
+            },
+            color = Color.White.copy(alpha = 0.35f),
+            style = Stroke(width = 12.dp.toPx(), cap = StrokeCap.Round)
+        )
+        
+        // 4. Draw Glass Rim Oval at the top
+        drawOval(
+            color = Color.White.copy(alpha = 0.35f),
+            topLeft = Offset(glassLeftTopX, glassTopY - 6f),
+            size = Size(glassRightTopX - glassLeftTopX, 12f),
+            style = Stroke(width = 2.dp.toPx())
+        )
+        
+        // 5. Draw Refraction Highlights on glass edges
+        val highlightInset = 8.dp.toPx()
+        // Left reflection streak
+        val leftHighlight = Path().apply {
+            moveTo(glassLeftTopX + highlightInset, glassTopY + highlightInset)
+            lineTo(glassLeftBottomX + highlightInset * 0.8f, glassBottomY - highlightInset)
+        }
+        drawPath(
+            path = leftHighlight,
+            color = Color.White.copy(alpha = 0.15f),
+            style = Stroke(width = 4.dp.toPx(), cap = StrokeCap.Round)
+        )
+        
+        // Right reflection streak
+        val rightHighlight = Path().apply {
+            moveTo(glassRightTopX - highlightInset, glassTopY + highlightInset)
+            lineTo(glassRightBottomX - highlightInset * 0.8f, glassBottomY - highlightInset)
+        }
+        drawPath(
+            path = rightHighlight,
+            color = Color.White.copy(alpha = 0.08f),
+            style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round)
         )
     }
 }

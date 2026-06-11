@@ -74,8 +74,8 @@ object BhajanProvider {
         Bhajan(
             id = "ram-stuti",
             title = "Shri Ram Stuti",
-            subtitle = "Shri Ramachandra Kripalu Bhaju Man",
-            audioResId = R.raw.hanuman_chalisa, // Placeholder
+            subtitle = "By Avinash Kumar",
+            audioResId = R.raw.ram_stuti,
             content = """
                 Shri Ramachandra Kripalu Bhaju Man Haran Bhava Bhaya Darunam,
                 Navakanja Lochana Kanja Mukha Kara Kanja Pada Kanjarunam.
@@ -102,8 +102,8 @@ object BhajanProvider {
         Bhajan(
             id = "karpura-gauram",
             title = "Karpura Gauram",
-            subtitle = "Shiva Yajur Mantra",
-            audioResId = R.raw.hanuman_chalisa, // Placeholder
+            subtitle = "By Amitabh Bachchan & Kailash Kher",
+            audioResId = R.raw.karpurgauram,
             content = """
                 Karpura Gauram Karunavataram,
                 Sansara Saram Bhujagendra Haram.
@@ -118,10 +118,10 @@ object BhajanProvider {
             """.trimIndent()
         ),
         Bhajan(
-            id = "shiv-tandav",
-            title = "Shiv Tandav Stotram",
+            id = "shiv-stotram",
+            title = "Shiv Stotram (Tandav)",
             subtitle = "Hymn of Shiva's Cosmic Dance",
-            audioResId = R.raw.hanuman_chalisa, // Placeholder
+            audioResId = R.raw.shiv_stotram,
             content = """
                 Jatatavigalajjala pravahapavitasthale
                 Galebavalambya lambitam bhujangatungamalikam.
@@ -143,7 +143,7 @@ object BhajanProvider {
             id = "gayatri-mantra",
             title = "Gayatri Mantra",
             subtitle = "Sacred Hymn of Rigveda",
-            audioResId = R.raw.hanuman_chalisa, // Placeholder
+            audioResId = R.raw.gayatri_mantra,
             content = """
                 Om Bhur Bhuvah Svah
                 Tat Savitur Varenyam
@@ -160,9 +160,9 @@ object BhajanProvider {
         ),
         Bhajan(
             id = "mahamrityunjaya",
-            title = "Mahamrityunjaya Mantra",
+            title = "Mahamrityunjaya Mantra (108)",
             subtitle = "Great Death-Conquering Mantra",
-            audioResId = R.raw.hanuman_chalisa, // Placeholder
+            audioResId = R.raw.maha_mrityunjaya_108,
             content = """
                 Om Tryambakam Yajamahe
                 Sugandhim Pushti-Vardhanam
@@ -173,6 +173,57 @@ object BhajanProvider {
                 We worship the three-eyed Lord Shiva, who is fragrant and nurtures all beings.
                 Just as a ripe cucumber is liberated from its bondage to the vine,
                 may He liberate us from death for the sake of immortality, and not separate us from it.
+            """.trimIndent()
+        ),
+        Bhajan(
+            id = "humare-saath-shri-raghunath",
+            title = "Humare Saath Shri Raghunath",
+            subtitle = "By Agam Aggarwal",
+            audioResId = R.raw.humare_saath_shri_raghunath,
+            content = """
+                Humare Saath Shri Raghunath To Kis Baat Ki Chinta,
+                Sharan Mein Rakh Diya Jab Maath To Kis Baat Ki Chinta.
+
+                Gaya Lakar Parivaar Humara,
+                Karta Hai Voh Hi Palanhaara.
+                Haath Mein Jab Hai Unka Haath To Kis Baat Ki Chinta,
+                Humare Saath Shri Raghunath To Kis Baat Ki Chinta.
+
+                Aastha Rakho Bhagwaan Mein,
+                Bhakti Karo Har Maan Mein.
+                Voh Har Pal Hai Tumhare Saath To Kis Baat Ki Chinta,
+                Humare Saath Shri Raghunath To Kis Baat Ki Chinta.
+            """.trimIndent()
+        ),
+        Bhajan(
+            id = "shankar-teri-jata-me",
+            title = "Shankar Teri Jata Se",
+            subtitle = "By Pujya Rajan Ji",
+            audioResId = R.raw.shankar_teri_jata_me,
+            content = """
+                Shankar Teri Jata Se Behti Hai Ganga Dhara,
+                Kala Ki Shobha Nyari, Bhole Tu Jag Se Pyara.
+
+                Maathe Pe Chand Sohe, Gale Mein Mund Mala,
+                Trinetra Dhari Shambho, Piya Zeher Ka Pyala.
+
+                Tum Ho Anaadi Ananta, Devom Ke Mahadeva,
+                Karate Hain Dev-Danav Sab Hi Tumhari Seva.
+            """.trimIndent()
+        ),
+        Bhajan(
+            id = "tera-mangal-mera-mangal",
+            title = "Tera Mangal Mera Mangal",
+            subtitle = "Vipassana Meditation & Focus Chant",
+            audioResId = R.raw.tera_mangal_mera_mangal,
+            content = """
+                Tera mangal, mera mangal, sabka mangal hoye re.
+                Jis janani ne janam diya hai, us janani ka mangal hoye re.
+                Jis pita ne palan kiya hai, us pita ka mangal hoye re.
+
+                Is dharti ke har prani ka, mangal mangal hoye re.
+                Dharma ka prachar hoye, shanti ka vistara hoye re,
+                Sabka mangal, sabka mangal, sabka mangal hoye re.
             """.trimIndent()
         )
     )

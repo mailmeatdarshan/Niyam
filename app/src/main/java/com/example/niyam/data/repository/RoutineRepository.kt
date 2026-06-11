@@ -17,6 +17,8 @@ class RoutineRepository @Inject constructor(
 ) {
     val allItems: Flow<List<RoutineItem>> = routineDao.getAllItems()
 
+    suspend fun getAllItemsOnce(): List<RoutineItem> = routineDao.getAllItemsOnce()
+
     suspend fun insert(item: RoutineItem) {
         routineDao.insertItem(item)
     }

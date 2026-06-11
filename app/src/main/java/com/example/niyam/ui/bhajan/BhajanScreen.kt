@@ -163,9 +163,9 @@ fun BhajanCategoriesList(onBhajanClick: (Bhajan) -> Unit) {
     val categories = remember {
         listOf(
             "Hanuman Bhakti" to BhajanProvider.bhajans.filter { it.id.contains("hanuman") },
-            "Shri Ram Bhakti" to BhajanProvider.bhajans.filter { it.id.contains("ram") },
-            "Shiva Stutis" to BhajanProvider.bhajans.filter { it.id.contains("shiva") || it.id.contains("gauram") || it.id.contains("tandav") },
-            "Sacred Mantras" to BhajanProvider.bhajans.filter { it.id.contains("mantra") || it.id.contains("mrityunjaya") }
+            "Shri Ram Bhakti" to BhajanProvider.bhajans.filter { it.id.contains("ram") || it.id.contains("raghunath") },
+            "Shiva Stutis" to BhajanProvider.bhajans.filter { it.id.contains("shiv") || it.id.contains("gauram") || it.id.contains("shankar") },
+            "Sacred Mantras" to BhajanProvider.bhajans.filter { it.id.contains("mantra") || it.id.contains("mrityunjaya") || it.id.contains("mangal") }
         )
     }
 
@@ -200,8 +200,8 @@ fun BhajanCategoriesList(onBhajanClick: (Bhajan) -> Unit) {
                         ) {
                             val categoryIcon = when {
                                 bhajan.id.contains("hanuman") -> Icons.Default.Favorite // Gada/Heart
-                                bhajan.id.contains("ram") -> Icons.Default.Star // Star/Bow
-                                bhajan.id.contains("shiva") || bhajan.id.contains("gauram") || bhajan.id.contains("tandav") -> Icons.Default.Spa // Spa/Lotus/Trident
+                                bhajan.id.contains("ram") || bhajan.id.contains("raghunath") -> Icons.Default.Star // Star/Bow
+                                bhajan.id.contains("shiv") || bhajan.id.contains("gauram") || bhajan.id.contains("shankar") -> Icons.Default.Spa // Spa/Lotus/Trident
                                 else -> Icons.Default.WbSunny // Sun/OM
                             }
                             

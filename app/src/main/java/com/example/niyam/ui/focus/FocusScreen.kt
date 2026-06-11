@@ -1,7 +1,10 @@
 package com.example.niyam.ui.focus
 
 import android.content.Context
+import android.media.MediaPlayer
 import android.media.RingtoneManager
+import androidx.compose.material.icons.filled.VolumeOff
+import androidx.compose.material.icons.filled.VolumeUp
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -52,6 +55,50 @@ fun FocusScreen(onBackClick: () -> Unit) {
 
     var focusCount by remember {
         mutableIntStateOf(sharedPreferences.getInt("focus_$todayStr", 0))
+    }
+
+    var playChant by remember { mutableStateOf(false) }
+    var mediaPlayer by remember { mutableStateOf<MediaPlayer?>(null) }
+
+    // Manage MediaPlayer lifecycle for background focus ambient chant
+    LaunchedEffect(isRunning, playChant, isFocusMode) {
+        if (isRunning && playChant && isFocusMode) {
+            try {
+                val mp = MediaPlayer.create(context, com.example.niyam.R.raw.tera_mangal_mera_mangal)
+                mp.isLooping = true
+                mp.start()
+                mediaPlayer = mp
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+        } else {
+            mediaPlayer?.let { mp ->
+                try {
+                    if (mp.isPlaying) {
+                        mp.stop()
+                    }
+                } catch (e: Exception) {}
+                try {
+                    mp.release()
+                } catch (e: Exception) {}
+            }
+            mediaPlayer = null
+        }
+    }
+
+    DisposableEffect(Unit) {
+        onDispose {
+            mediaPlayer?.let { mp ->
+                try {
+                    if (mp.isPlaying) {
+                        mp.stop()
+                    }
+                } catch (e: Exception) {}
+                try {
+                    mp.release()
+                } catch (e: Exception) {}
+            }
+        }
     }
 
     // Timer modes
@@ -238,11 +285,55 @@ fun FocusScreen(onBackClick: () -> Unit) {
                 }
             }
 
-            // Stats and Controls
             Column(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 modifier = Modifier.fillMaxWidth()
             ) {
+                // Ambient Chant Toggle
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 12.dp)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(MaterialTheme.colorScheme.surface)
+                        .clickable { playChant = !playChant }
+                        .padding(horizontal = 16.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Icon(
+                            imageVector = if (playChant) Icons.Default.VolumeUp else Icons.Default.VolumeOff,
+                            contentDescription = "Chant Audio",
+                            tint = if (playChant) SaffronPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Column {
+                            Text(
+                                text = "Focus Ambient Chant",
+                                style = MaterialTheme.typography.bodyMedium,
+                                fontWeight = FontWeight.SemiBold
+                            )
+                            Text(
+                                text = "Tera Mangal Mera Mangal",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                    Switch(
+                        checked = playChant,
+                        onCheckedChange = { playChant = it },
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = Color.Black,
+                            checkedTrackColor = SaffronPrimary
+                        )
+                    )
+                }
+
                 // Today's completed Pomodoro sessions
                 Card(
                     shape = RoundedCornerShape(16.dp),
