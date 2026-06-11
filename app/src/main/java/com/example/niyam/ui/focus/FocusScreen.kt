@@ -57,6 +57,20 @@ fun FocusScreen(onBackClick: () -> Unit) {
         mutableIntStateOf(sharedPreferences.getInt("focus_$todayStr", 0))
     }
 
+    // Timer modes
+    var isFocusMode by remember { mutableStateOf(true) } // true for 25m Focus, false for 5m Break
+    
+    val focusTimeMs = 25 * 60 * 1000L
+    val breakTimeMs = 5 * 60 * 1000L
+    
+    var totalTime by remember(isFocusMode) {
+        mutableLongStateOf(if (isFocusMode) focusTimeMs else breakTimeMs)
+    }
+    
+    var currentTime by remember(totalTime) { mutableLongStateOf(totalTime) }
+    var isRunning by remember { mutableStateOf(false) }
+    var showSessionCompleteDialog by remember { mutableStateOf(false) }
+
     var playChant by remember { mutableStateOf(false) }
     var mediaPlayer by remember { mutableStateOf<MediaPlayer?>(null) }
 
@@ -100,20 +114,6 @@ fun FocusScreen(onBackClick: () -> Unit) {
             }
         }
     }
-
-    // Timer modes
-    var isFocusMode by remember { mutableStateOf(true) } // true for 25m Focus, false for 5m Break
-    
-    val focusTimeMs = 25 * 60 * 1000L
-    val breakTimeMs = 5 * 60 * 1000L
-    
-    var totalTime by remember(isFocusMode) {
-        mutableLongStateOf(if (isFocusMode) focusTimeMs else breakTimeMs)
-    }
-    
-    var currentTime by remember(totalTime) { mutableLongStateOf(totalTime) }
-    var isRunning by remember { mutableStateOf(false) }
-    var showSessionCompleteDialog by remember { mutableStateOf(false) }
 
     // Persist when focus sessions increase
     LaunchedEffect(focusCount) {
