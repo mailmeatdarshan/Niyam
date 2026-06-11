@@ -17,6 +17,9 @@ interface RoutineDao {
     @Delete
     suspend fun deleteItem(item: RoutineItem)
 
+    @Query("SELECT * FROM routine_items")
+    suspend fun getAllItemsOnce(): List<RoutineItem>
+
     @Query("DELETE FROM routine_items")
     suspend fun deleteAll()
 }

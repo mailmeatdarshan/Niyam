@@ -9,5 +9,6 @@ data class RoutineItem(
     val id: Int = 0,
     val title: String,
     val isCompleted: Boolean = false,
+    val timeOfDay: String = "morning", // "morning", "afternoon", "evening"
     val createdAt: Long = System.currentTimeMillis()
 )

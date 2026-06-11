@@ -1,8 +1,13 @@
 package com.example.niyam.data.repository
 
+import android.content.Context
 import com.example.niyam.data.local.RoutineDao
 import com.example.niyam.data.local.RoutineItem
 import kotlinx.coroutines.flow.Flow
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Date
+import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -26,11 +31,35 @@ class RoutineRepository @Inject constructor(
     
     suspend fun initializeDefaultTasks() {
         val defaults = listOf(
-            RoutineItem(title = "Sandhyavandanam"),
-            RoutineItem(title = "Meditation (15 min)"),
-            RoutineItem(title = "Bhagavad Gita Reading"),
-            RoutineItem(title = "Surya Namaskar")
+            // Morning
+            RoutineItem(title = "Meditation (App)", timeOfDay = "morning"),
+            RoutineItem(title = "Bhagavad Gita (App)", timeOfDay = "morning"),
+            
+            // Afternoon
+            RoutineItem(title = "Swadhyaya (Self-study)", timeOfDay = "afternoon"),
+            RoutineItem(title = "Hydrate (Log Water)", timeOfDay = "afternoon"),
+            
+            // Evening
+            RoutineItem(title = "Walk (500m - 1km)", timeOfDay = "evening"),
+            RoutineItem(title = "Sandhyavandanam", timeOfDay = "evening")
         )
         defaults.forEach { routineDao.insertItem(it) }
+    }
+
+    suspend fun resetDailyRoutinesIfNeeded(context: Context) {
+        val prefs = context.getSharedPreferences("niyam_routine_prefs", Context.MODE_PRIVATE)
+        val sdf = SimpleDateFormat("yyyyMMdd", Locale.getDefault())
+        val todayStr = sdf.format(Date())
+        val lastReset = prefs.getString("last_reset_date", "")
+        
+        if (lastReset != todayStr) {
+            val currentItems = routineDao.getAllItemsOnce()
+            currentItems.forEach {
+                if (it.isCompleted) {
+                    routineDao.updateItem(it.copy(isCompleted = false))
+                }
+            }
+            prefs.edit().putString("last_reset_date", todayStr).apply()
+        }
     }
 }

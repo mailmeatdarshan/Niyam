@@ -23,6 +23,7 @@ import com.example.niyam.ui.task.TaskViewModel
 import com.example.niyam.ui.water.WaterIntakeScreen
 import com.example.niyam.ui.focus.FocusScreen
 import com.example.niyam.ui.profile.ProfileSetupScreen
+import com.example.niyam.ui.profile.ProfileScreen
 import com.example.niyam.ui.profile.ProfileViewModel
 import com.example.niyam.ui.settings.SettingsScreen
 import com.example.niyam.ui.about.AboutScreen
@@ -90,6 +91,18 @@ fun NiyamNavHost(userProfileManager: UserProfileManager) {
             )
         }
         composable("profile") {
+            val profileViewModel: ProfileViewModel = hiltViewModel()
+            ProfileScreen(
+                viewModel = profileViewModel,
+                onEditProfileClick = {
+                    navController.navigate("profile_edit")
+                },
+                onBackClick = {
+                    navController.popBackStack()
+                }
+            )
+        }
+        composable("profile_edit") {
             val profileViewModel: ProfileViewModel = hiltViewModel()
             ProfileSetupScreen(
                 viewModel = profileViewModel,

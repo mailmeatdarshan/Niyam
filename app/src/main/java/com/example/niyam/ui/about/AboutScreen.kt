@@ -9,7 +9,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -23,6 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -32,7 +32,6 @@ import androidx.compose.ui.unit.sp
 import com.example.niyam.R
 import com.example.niyam.ui.theme.SaffronPrimary
 import com.example.niyam.ui.theme.SaffronSecondary
-import com.example.niyam.ui.theme.SaffronTertiary
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -111,26 +110,22 @@ fun AboutScreen(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(24.dp)
             ) {
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(8.dp))
 
-                // App Logo (our new sisyphus icon)
+                // App Logo Card (now loaded as a standard PNG resource to prevent AdaptiveIcon crashes)
                 Card(
                     modifier = Modifier.size(100.dp),
                     shape = RoundedCornerShape(24.dp),
                     border = BorderStroke(2.dp, SaffronPrimary),
-                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
                     elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
                 ) {
-                    Box(
+                    Image(
+                        painter = painterResource(id = R.drawable.app_logo),
+                        contentDescription = "Niyam App Icon",
                         modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Image(
-                            painter = painterResource(id = R.mipmap.ic_launcher),
-                            contentDescription = "Niyam App Icon",
-                            modifier = Modifier.size(80.dp)
-                        )
-                    }
+                        contentScale = ContentScale.Crop
+                    )
                 }
 
                 Text(
@@ -149,7 +144,7 @@ fun AboutScreen(
                     )
                 )
 
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(4.dp))
 
                 // Developer Info Card
                 Card(
@@ -198,102 +193,47 @@ fun AboutScreen(
                     )
                 )
 
-                Row(
+                Column(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    // GitHub
-                    Card(
-                        modifier = Modifier
-                            .weight(1f)
-                            .clickable { openUrl("https://github.com/darshandubey") },
-                        shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                        border = BorderStroke(1.dp, SaffronPrimary.copy(alpha = 0.1f))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(12.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Link,
-                                contentDescription = "GitHub",
-                                tint = SaffronPrimary,
-                                modifier = Modifier.size(24.dp)
-                            )
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                text = "GitHub",
-                                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold)
-                            )
-                        }
+                        SocialCard(
+                            label = "GitHub",
+                            url = "https://github.com/mailmeatdarshan",
+                            modifier = Modifier.weight(1f),
+                            onClick = { openUrl(it) }
+                        )
+                        SocialCard(
+                            label = "Portfolio",
+                            url = "https://darshandubey.site",
+                            modifier = Modifier.weight(1f),
+                            onClick = { openUrl(it) }
+                        )
                     }
-
-                    // Twitter / X
-                    Card(
-                        modifier = Modifier
-                            .weight(1f)
-                            .clickable { openUrl("https://twitter.com/darshandubey") },
-                        shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                        border = BorderStroke(1.dp, SaffronPrimary.copy(alpha = 0.1f))
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(12.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Link,
-                                contentDescription = "Twitter",
-                                tint = SaffronPrimary,
-                                modifier = Modifier.size(24.dp)
-                            )
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                text = "Twitter / X",
-                                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold)
-                            )
-                        }
-                    }
-
-                    // LinkedIn
-                    Card(
-                        modifier = Modifier
-                            .weight(1f)
-                            .clickable { openUrl("https://linkedin.com/in/darshandubey") },
-                        shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                        border = BorderStroke(1.dp, SaffronPrimary.copy(alpha = 0.1f))
-                    ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(12.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Link,
-                                contentDescription = "LinkedIn",
-                                tint = SaffronPrimary,
-                                modifier = Modifier.size(24.dp)
-                            )
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                text = "LinkedIn",
-                                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold)
-                            )
-                        }
+                        SocialCard(
+                            label = "Instagram",
+                            url = "https://instagram.com/main.darshan",
+                            modifier = Modifier.weight(1f),
+                            onClick = { openUrl(it) }
+                        )
+                        SocialCard(
+                            label = "LinkedIn",
+                            url = "https://linkedin.com/in/darshandubey25",
+                            modifier = Modifier.weight(1f),
+                            onClick = { openUrl(it) }
+                        )
                     }
                 }
 
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(4.dp))
 
                 // Feedback button
                 Button(
@@ -336,6 +276,42 @@ fun AboutScreen(
                     }
                 }
             }
+        }
+    }
+}
+
+@Composable
+fun SocialCard(
+    label: String,
+    url: String,
+    modifier: Modifier = Modifier,
+    onClick: (String) -> Unit
+) {
+    Card(
+        modifier = modifier.clickable { onClick(url) },
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        border = BorderStroke(1.dp, SaffronPrimary.copy(alpha = 0.1f))
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Icon(
+                imageVector = Icons.Default.Link,
+                contentDescription = label,
+                tint = SaffronPrimary,
+                modifier = Modifier.size(24.dp)
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = label,
+                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                textAlign = TextAlign.Center
+            )
         }
     }
 }

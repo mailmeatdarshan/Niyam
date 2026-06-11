@@ -98,9 +98,6 @@ fun TaskScreen(
                     )
                 )
         ) {
-            // Heatmap consistency chart at the top
-            TaskHeatmap(tasks = tasks)
-
             // Category Tab Row
             ScrollableTabRow(
                 selectedTabIndex = categories.indexOf(selectedCategory),
@@ -183,118 +180,7 @@ fun TaskScreen(
 }
 
 @Composable
-fun TaskHeatmap(tasks: List<TaskItem>) {
-    val sdf = remember { SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()) }
-    
-    // Calculate completions per day
-    val completionCounts = remember(tasks) {
-        val counts = mutableMapOf<String, Int>()
-        tasks.forEach { task ->
-            if (task.status == TaskStatus.DONE && task.completedAt != null) {
-                val dateStr = sdf.format(Date(task.completedAt))
-                counts[dateStr] = (counts[dateStr] ?: 0) + 1
-            }
-        }
-        counts
-    }
 
-    // Generate dates for the last 12 weeks, aligned to start on Sunday
-    val weeks = remember {
-        val list = mutableListOf<List<String>>()
-        val cal = Calendar.getInstance()
-        
-        // Go back 11 weeks and set to Sunday
-        cal.add(Calendar.WEEK_OF_YEAR, -11)
-        cal.set(Calendar.DAY_OF_WEEK, Calendar.SUNDAY)
-        
-        for (w in 0 until 12) {
-            val weekDays = mutableListOf<String>()
-            for (d in 0 until 7) {
-                weekDays.add(sdf.format(cal.time))
-                cal.add(Calendar.DAY_OF_YEAR, 1)
-            }
-            list.add(weekDays)
-        }
-        list
-    }
-
-    Card(
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(16.dp)
-    ) {
-        Column(modifier = Modifier.padding(14.dp)) {
-            Text(
-                text = "Consistency Heatmap",
-                fontWeight = FontWeight.Bold,
-                style = MaterialTheme.typography.titleSmall,
-                color = SaffronPrimary,
-                modifier = Modifier.padding(bottom = 12.dp)
-            )
-
-            // Grid Row containing columns of weeks
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                weeks.forEach { week ->
-                    Column(
-                        verticalArrangement = Arrangement.spacedBy(4.dp)
-                    ) {
-                        week.forEach { dateStr ->
-                            val count = completionCounts[dateStr] ?: 0
-                            val color = when {
-                                count == 0 -> Color(0xFF262626) // Empty
-                                count == 1 -> Color(0xFF5D2E14) // Saffron Level 1
-                                count == 2 -> Color(0xFF8C4318) // Saffron Level 2
-                                count == 3 -> Color(0xFFC05C1D) // Saffron Level 3
-                                count == 4 -> Color(0xFFE67329) // Saffron Level 4
-                                else -> Color(0xFFFF944D)       // Saffron Level 5 (Highest)
-                            }
-
-                            Box(
-                                modifier = Modifier
-                                    .size(13.dp)
-                                    .clip(RoundedCornerShape(3.dp))
-                                    .background(color)
-                            )
-                        }
-                    }
-                }
-            }
-            
-            Spacer(modifier = Modifier.height(10.dp))
-            
-            // Legend
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text("Less ", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                listOf(
-                    Color(0xFF262626),
-                    Color(0xFF5D2E14),
-                    Color(0xFF8C4318),
-                    Color(0xFFC05C1D),
-                    Color(0xFFE67329),
-                    Color(0xFFFF944D)
-                ).forEach { color ->
-                    Box(
-                        modifier = Modifier
-                            .padding(horizontal = 2.dp)
-                            .size(10.dp)
-                            .clip(RoundedCornerShape(2.dp))
-                            .background(color)
-                    )
-                }
-                Text(" More", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-        }
-    }
-}
 
 @Composable
 fun TaskItemCard(

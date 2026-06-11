@@ -35,4 +35,9 @@ object DatabaseModule {
     fun provideTaskDao(database: NiyamDatabase): TaskDao {
         return database.taskDao()
     }
+
+    @Provides
+    fun provideCompletionDao(database: NiyamDatabase): CompletionDao {
+        return database.completionDao()
+    }
 }

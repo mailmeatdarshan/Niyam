@@ -170,7 +170,7 @@ fun HomeScreen(
                     DailyProgressSection(
                         items = routineItems,
                         onToggle = { routineViewModel.toggleTask(it) },
-                        onAddTask = { routineViewModel.addTask(it) }
+                        onAddTask = { title, slot -> routineViewModel.addTask(title, slot) }
                     )
                 }
             }
@@ -500,14 +500,25 @@ fun QuickActionItem(
 fun DailyProgressSection(
     items: List<RoutineItem>,
     onToggle: (RoutineItem) -> Unit,
-    onAddTask: (String) -> Unit
+    onAddTask: (String, String) -> Unit
 ) {
     var showAddDialog by remember { mutableStateOf(false) }
-
+    var newTaskTitle by remember { mutableStateOf("") }
+    var selectedSlot by remember { mutableStateOf("morning") }
+    
+    val morningItems = items.filter { it.timeOfDay.lowercase() == "morning" }
+    val afternoonItems = items.filter { it.timeOfDay.lowercase() == "afternoon" }
+    val eveningItems = items.filter { it.timeOfDay.lowercase() == "evening" }
+    
+    val totalCount = items.size
     val completedCount = items.count { it.isCompleted }
-    val progressPercent = if (items.isNotEmpty()) (completedCount.toFloat() / items.size.toFloat() * 100).toInt() else 0
+    val completionPercentage = if (totalCount > 0) (completedCount * 100 / totalCount) else 0
 
-    Column {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        // Timeline Header with total stats
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -515,131 +526,151 @@ fun DailyProgressSection(
         ) {
             Column {
                 Text(
-                    text = "Today's Routine",
-                    fontWeight = FontWeight.Bold,
-                    style = MaterialTheme.typography.titleLarge,
-                    color = SaffronPrimary
+                    text = "Today's Schedule",
+                    style = MaterialTheme.typography.titleLarge.copy(
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
                 )
-                if (items.isNotEmpty()) {
-                    Text(
-                        text = "$completedCount of ${items.size} activities completed ($progressPercent%)",
-                        style = MaterialTheme.typography.bodySmall,
+                Text(
+                    text = "$completedCount of $totalCount rituals completed ($completionPercentage%)",
+                    style = MaterialTheme.typography.bodyMedium.copy(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                }
+                )
             }
             
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                // Small progress indicator
-                if (items.isNotEmpty()) {
-                    CircularProgressIndicator(
-                        progress = completedCount.toFloat() / items.size.toFloat(),
-                        color = SaffronPrimary,
-                        trackColor = SaffronPrimary.copy(alpha = 0.15f),
-                        strokeWidth = 3.dp,
-                        modifier = Modifier.size(24.dp)
-                    )
-                    Spacer(modifier = Modifier.width(12.dp))
-                }
-                
-                IconButton(
-                    onClick = { showAddDialog = true },
-                    modifier = Modifier
-                        .background(SaffronPrimary.copy(alpha = 0.1f), CircleShape)
-                        .size(32.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Add, 
-                        contentDescription = "Add Task", 
-                        tint = SaffronPrimary,
-                        modifier = Modifier.size(18.dp)
-                    )
-                }
+            IconButton(
+                onClick = { showAddDialog = true },
+                modifier = Modifier
+                    .background(SaffronPrimary.copy(alpha = 0.15f), CircleShape)
+                    .size(40.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Add,
+                    contentDescription = "Add Ritual",
+                    tint = SaffronPrimary
+                )
             }
         }
-        
-        Spacer(modifier = Modifier.height(12.dp))
 
+        // Timeline Card with Schedule sections
         Card(
             modifier = Modifier.fillMaxWidth(),
-            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-            shape = RoundedCornerShape(20.dp),
-            border = BorderStroke(1.dp, SaffronPrimary.copy(alpha = 0.1f)),
-            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+            shape = RoundedCornerShape(24.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = MaterialTheme.colorScheme.surface
+            ),
+            border = BorderStroke(1.dp, SaffronPrimary.copy(alpha = 0.15f))
         ) {
-            Column(modifier = Modifier.padding(16.dp)) {
-                if (items.isEmpty()) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(vertical = 24.dp),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Icon(
-                                imageVector = Icons.Default.Checklist,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f),
-                                modifier = Modifier.size(36.dp)
-                            )
-                            Spacer(modifier = Modifier.height(8.dp))
-                            Text(
-                                "No routine tasks created yet.",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                } else {
-                    items.forEachIndexed { index, item ->
-                        if (index > 0) {
-                            HorizontalDivider(color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
-                        }
-                        RoutineItemRow(
-                            item = item,
-                            onToggle = { onToggle(item) }
-                        )
-                    }
-                }
+            Column(
+                modifier = Modifier.padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(20.dp)
+            ) {
+                TimelineSection(
+                    title = "Morning",
+                    icon = Icons.Default.LightMode,
+                    items = morningItems,
+                    onToggle = onToggle
+                )
+                
+                HorizontalDivider(color = SaffronPrimary.copy(alpha = 0.1f))
+                
+                TimelineSection(
+                    title = "Afternoon",
+                    icon = Icons.Default.WbSunny,
+                    items = afternoonItems,
+                    onToggle = onToggle
+                )
+                
+                HorizontalDivider(color = SaffronPrimary.copy(alpha = 0.1f))
+                
+                TimelineSection(
+                    title = "Evening",
+                    icon = Icons.Default.NightsStay,
+                    items = eveningItems,
+                    onToggle = onToggle
+                )
             }
         }
     }
-
+    
+    // Add Dialog
     if (showAddDialog) {
-        var taskTitle by remember { mutableStateOf("") }
         AlertDialog(
             onDismissRequest = { showAddDialog = false },
-            title = { Text("Add New Routine Task") },
+            title = { Text("Add Daily Ritual") },
             text = {
-                OutlinedTextField(
-                    value = taskTitle,
-                    onValueChange = { taskTitle = it },
-                    placeholder = { Text("e.g., Sandhyavandhanam") },
-                    singleLine = true,
-                    shape = RoundedCornerShape(12.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = SaffronPrimary,
-                        focusedLabelColor = SaffronPrimary
-                    ),
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
                     modifier = Modifier.fillMaxWidth()
-                )
+                ) {
+                    OutlinedTextField(
+                        value = newTaskTitle,
+                        onValueChange = { newTaskTitle = it },
+                        label = { Text("Ritual Title") },
+                        placeholder = { Text("e.g., Swadhyaya") },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = SaffronPrimary,
+                            focusedLabelColor = SaffronPrimary
+                        )
+                    )
+                    
+                    Column {
+                        Text(
+                            text = "Schedule Slot",
+                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold)
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            listOf("morning", "afternoon", "evening").forEach { slot ->
+                                val isSelected = selectedSlot == slot
+                                val bg = if (isSelected) SaffronPrimary else MaterialTheme.colorScheme.surfaceVariant
+                                val fg = if (isSelected) Color.White else MaterialTheme.colorScheme.onSurface
+                                
+                                Box(
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(bg)
+                                        .clickable { selectedSlot = slot }
+                                        .padding(vertical = 10.dp),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = slot.replaceFirstChar { it.uppercase() },
+                                        style = MaterialTheme.typography.bodyMedium.copy(
+                                            fontWeight = FontWeight.Bold,
+                                            color = fg
+                                        )
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
             },
             confirmButton = {
-                Button(
+                TextButton(
                     onClick = {
-                        if (taskTitle.isNotBlank()) {
-                            onAddTask(taskTitle)
+                        if (newTaskTitle.isNotBlank()) {
+                            onAddTask(newTaskTitle, selectedSlot)
+                            newTaskTitle = ""
                             showAddDialog = false
                         }
-                    },
-                    colors = ButtonDefaults.buttonColors(containerColor = SaffronPrimary, contentColor = Color.Black)
+                    }
                 ) {
-                    Text("Add", fontWeight = FontWeight.Bold)
+                    Text("Add", color = SaffronPrimary, fontWeight = FontWeight.Bold)
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showAddDialog = false }) {
-                    Text("Cancel")
+                    Text("Cancel", color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             },
             containerColor = MaterialTheme.colorScheme.surface,
@@ -649,40 +680,102 @@ fun DailyProgressSection(
 }
 
 @Composable
-fun RoutineItemRow(item: RoutineItem, onToggle: () -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onToggle() }
-            .padding(vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically
+fun TimelineSection(
+    title: String,
+    icon: ImageVector,
+    items: List<RoutineItem>,
+    onToggle: (RoutineItem) -> Unit
+) {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        Box(
-            modifier = Modifier
-                .size(22.dp)
-                .clip(CircleShape)
-                .background(if (item.isCompleted) SaffronPrimary else Color.Transparent)
-                .border(2.dp, SaffronPrimary, CircleShape),
-            contentAlignment = Alignment.Center
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            if (item.isCompleted) {
-                Icon(
-                    imageVector = Icons.Default.Check,
-                    contentDescription = null,
-                    tint = Color.Black,
-                    modifier = Modifier.size(14.dp)
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                tint = SaffronPrimary,
+                modifier = Modifier.size(20.dp)
+            )
+            Text(
+                text = title.uppercase(),
+                style = MaterialTheme.typography.labelLarge.copy(
+                    fontWeight = FontWeight.Bold,
+                    color = SaffronPrimary,
+                    letterSpacing = 1.5.sp
                 )
-            }
+            )
         }
         
-        Spacer(modifier = Modifier.width(16.dp))
-        Text(
-            text = item.title,
-            style = MaterialTheme.typography.bodyLarge.copy(
-                fontWeight = FontWeight.SemiBold,
-                textDecoration = if (item.isCompleted) androidx.compose.ui.text.style.TextDecoration.LineThrough else null
-            ),
-            color = if (item.isCompleted) MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f) else MaterialTheme.colorScheme.onSurface
-        )
+        if (items.isEmpty()) {
+            Text(
+                text = "No rituals scheduled for this period.",
+                style = MaterialTheme.typography.bodyMedium.copy(
+                    fontStyle = FontStyle.Italic,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                ),
+                modifier = Modifier.padding(start = 28.dp, vertical = 4.dp)
+            )
+        } else {
+            Column(
+                modifier = Modifier.padding(start = 8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                items.forEach { item ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onToggle(item) }
+                            .padding(vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier.size(20.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (item.isCompleted) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(16.dp)
+                                        .clip(CircleShape)
+                                        .background(SaffronPrimary),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Check,
+                                        contentDescription = "Completed",
+                                        tint = Color.White,
+                                        modifier = Modifier.size(10.dp)
+                                    )
+                                }
+                            } else {
+                                Box(
+                                    modifier = Modifier
+                                        .size(16.dp)
+                                        .border(BorderStroke(2.dp, SaffronPrimary.copy(alpha = 0.5f)), CircleShape)
+                                )
+                            }
+                        }
+                        
+                        Spacer(modifier = Modifier.width(12.dp))
+                        
+                        Text(
+                            text = item.title,
+                            style = MaterialTheme.typography.bodyLarge.copy(
+                                fontWeight = if (item.isCompleted) FontWeight.Normal else FontWeight.Medium,
+                                color = if (item.isCompleted) {
+                                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                                } else {
+                                    MaterialTheme.colorScheme.onSurface
+                                }
+                            )
+                        )
+                    }
+                }
+            }
+        }
     }
 }
+
